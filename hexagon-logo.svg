@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="229.7 190.4 563.2 641.7">
+  <path id="band" fill="#333333" d="M354.2 306.9 L256.2 363.4 L256.0 518.8 L444.2 627.4 L489.1 601.5 L301.1 492.1 L301.1 390.2 L354.1 359.3 Z"/>
+  <use href="#band" transform="rotate(60 511.33 511.22)"/>
+  <use href="#band" transform="rotate(120 511.33 511.22)"/>
+  <use href="#band" transform="rotate(180 511.33 511.22)"/>
+  <use href="#band" transform="rotate(240 511.33 511.22)"/>
+  <use href="#band" transform="rotate(300 511.33 511.22)"/>
+</svg>
