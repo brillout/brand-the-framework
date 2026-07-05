@@ -236,6 +236,18 @@ export const COLOR_PALETTES: ColorPalette[] = [
     group: "Single-hue ramps",
     colors: ["#701a75", "#86198f", "#a21caf", "#c026d3", "#d946ef", "#e879f9"],
   },
+  {
+    // The facet colors of the GemStack gem logo, darkest to lightest.
+    name: "Gemstack",
+    group: "Single-hue ramps",
+    colors: ["#a04adb", "#b054e6", "#be62ee", "#c285f2", "#cd9bf4", "#dec5f8"],
+  },
+  {
+    // The GemStack gem hue extended into darker shades for more contrast.
+    name: "Amethyst",
+    group: "Single-hue ramps",
+    colors: ["#5f0f8a", "#7813ae", "#9117d3", "#a62ce8", "#b551ec", "#c575f0"],
+  },
 
   // ---------------------------------------------------------- minimal accent
   {
