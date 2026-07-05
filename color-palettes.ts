@@ -177,6 +177,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
   {
     name: "Terracotta minimal",
     group: "Terracotta",
+    colors: ["#52ad8f", "#8ab17d", "#babb74", "#efb366", "#ee8959", "#e76f51"],
+  },
+  {
+    name: "Terracotta minimal 2",
+    group: "Terracotta",
     colors: ["#7cb069", "#8ab17d", "#babb74", "#efb366", "#ee8959", "#e76f51"],
   },
   {
