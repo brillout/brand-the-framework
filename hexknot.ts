@@ -15,6 +15,11 @@
  *   v = holeSize / 2   apothem of the central opening
  *   g = gap            white gap where a band tucks under its neighbor
  *
+ * Where a band runs alongside its neighbor, the space between them is
+ * a - 2t - v. `bandGap` sets that space directly — it describes the same
+ * degree of freedom as `holeSize` (holeSize = size - 4·lineWidth - 2·bandGap),
+ * so passing it derives the hole and takes precedence over `holeSize`.
+ *
  * Color
  * -----
  * `colors` takes any number of colors; `gradient` picks how they are applied:
@@ -40,6 +45,7 @@
  * Example: npx tsx hexknot.ts logo.svg --colors=#ff9a00,#e5006d,#3a7bd5
  *          npx tsx hexknot.ts logo.svg --gradient=flow
  *          npx tsx hexknot.ts logo.svg --cornerRadius=8
+ *          npx tsx hexknot.ts logo.svg --bandGap=40
  *          npx tsx hexknot.ts logo.svg --colors=#333333   (original flat mark)
  * Import:  import { hexKnotSvg } from "./hexknot";
  */
@@ -55,6 +61,12 @@ export interface HexKnotParams {
   gap?: number;
   /** Width of the central opening, flat side to flat side. */
   holeSize?: number;
+  /**
+   * Space between neighboring bands where they run side by side. Same degree
+   * of freedom as `holeSize` (holeSize = size - 4·lineWidth - 2·bandGap);
+   * takes precedence over it.
+   */
+  bandGap?: number;
   /** Corner rounding radius (the SVG-path equivalent of CSS border-radius). 0 keeps sharp corners. */
   cornerRadius?: number;
   /** Margin between the artwork and the edge of the viewBox. */
@@ -81,6 +93,7 @@ export const DEFAULTS: Required<HexKnotParams> = {
   lineWidth: 55,
   gap: 17,
   holeSize: 240,
+  bandGap: 26, // = (size - 4 * lineWidth - holeSize) / 2 — kept in sync with the values above
   cornerRadius: 10,
   padding: 50,
   color: "#333333",
@@ -93,6 +106,19 @@ export const DEFAULTS: Required<HexKnotParams> = {
 };
 
 type Resolved = Required<HexKnotParams>;
+
+/**
+ * Fill in defaults and reconcile `bandGap` <-> `holeSize`, two views of one
+ * degree of freedom: an explicit `bandGap` derives the hole and wins over
+ * `holeSize`; otherwise `holeSize` (given or default) drives and `bandGap`
+ * is derived, so the resolved params are always mutually consistent.
+ */
+function resolve(params: HexKnotParams): Resolved {
+  const p: Resolved = { ...DEFAULTS, ...params };
+  if (params.bandGap !== undefined) p.holeSize = p.size - 4 * p.lineWidth - 2 * p.bandGap;
+  else p.bandGap = (p.size - 4 * p.lineWidth - p.holeSize) / 2;
+  return p;
+}
 
 // ----------------------------------------------------------------- geometry
 
@@ -160,7 +186,7 @@ const corners = (edges: Line[]): Vec[] =>
 
 /** Corners of the base band for given params (P0..P7); handy for testing and custom rendering. */
 export const bandCorners = (params: HexKnotParams = {}): Vec[] =>
-  corners(bandEdges({ ...DEFAULTS, ...params }));
+  corners(bandEdges(resolve(params)));
 
 /**
  * Rounded corner i of a polygon: the two adjacent edges are trimmed back and
@@ -212,7 +238,6 @@ function roundCorner(poly: Vec[], i: number, radius: number): RoundedCorner {
 
 /** Loud warnings for parameter combinations that break the design. */
 function validate(p: Resolved): void {
-  const a = p.size / 2;
   const v = p.holeSize / 2;
   const problems: Array<[boolean, string]> = [
     [
@@ -220,10 +245,13 @@ function validate(p: Resolved): void {
       "size, lineWidth and holeSize must be positive; gap must be >= 0",
     ],
     [p.cornerRadius < 0, "cornerRadius must be >= 0 — treating it as 0 (sharp corners)"],
-    [v <= p.gap, "holeSize/2 must exceed gap, or the stroke tips collide in the center"],
     [
-      a - p.lineWidth <= v + p.lineWidth + p.gap,
-      "no room between outer sides and the hole — lower lineWidth/holeSize/gap or raise size",
+      v <= p.gap,
+      "holeSize/2 must exceed gap, or the stroke tips collide in the center (a big bandGap shrinks the hole)",
+    ],
+    [
+      p.bandGap <= p.gap,
+      "bandGap must exceed gap, or a band collides with the neighbor it runs alongside — raise bandGap/size or lower lineWidth/holeSize/gap",
     ],
     [
       !["steps", "flow", "linear"].includes(p.gradient),
@@ -268,7 +296,7 @@ export function paletteAt(palette: readonly Rgb[], t: number): string {
 // --------------------------------------------------------------- svg output
 
 export function hexKnotSvg(params: HexKnotParams = {}): string {
-  const p: Resolved = { ...DEFAULTS, ...params };
+  const p = resolve(params);
   validate(p);
 
   // `colors` wins over `color`; passing only `color` opts out of the default palette.
@@ -442,7 +470,10 @@ function parseArgs(argv: string[]): { out: string; params: HexKnotParams } {
 const isMain = async (): Promise<boolean> => {
   if (typeof process === "undefined" || process.argv?.[1] === undefined) return false;
   try {
-    const [{ fileURLToPath }, { resolve }] = await Promise.all([import("node:url"), import("node:path")]);
+    const [{ fileURLToPath }, { resolve }] = await Promise.all([
+      import("node:url"),
+      import("node:path"),
+    ]);
     return fileURLToPath(import.meta.url) === resolve(process.argv[1]);
   } catch {
     return false;

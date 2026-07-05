@@ -14,6 +14,7 @@ interface State {
   lineWidth: number;
   gap: number;
   holeSize: number;
+  bandGap: number;
   cornerRadius: number;
   padding: number;
   precision: number;
@@ -29,6 +30,7 @@ const stateDefaults: State = {
   lineWidth: DEFAULTS.lineWidth,
   gap: DEFAULTS.gap,
   holeSize: DEFAULTS.holeSize,
+  bandGap: DEFAULTS.bandGap,
   cornerRadius: DEFAULTS.cornerRadius,
   padding: DEFAULTS.padding,
   precision: DEFAULTS.precision,
@@ -44,6 +46,7 @@ const NUMERIC_KEYS = [
   "lineWidth",
   "gap",
   "holeSize",
+  "bandGap",
   "cornerRadius",
   "padding",
   "precision",
@@ -51,7 +54,15 @@ const NUMERIC_KEYS = [
 ] as const;
 type NumericKey = (typeof NUMERIC_KEYS)[number];
 
-const state: State = { ...stateDefaults, colors: [...stateDefaults.colors], ...paramsFromUrl() };
+const urlState = paramsFromUrl();
+const state: State = { ...stateDefaults, colors: [...stateDefaults.colors], ...urlState };
+// `bandGap` and `holeSize` describe the same degree of freedom (holeSize =
+// size - 4·lineWidth - 2·bandGap); reconcile whichever one the URL left out.
+if (urlState.bandGap !== undefined && urlState.holeSize === undefined) {
+  state.holeSize = state.size - 4 * state.lineWidth - 2 * state.bandGap;
+} else {
+  state.bandGap = (state.size - 4 * state.lineWidth - state.holeSize) / 2;
+}
 
 // ------------------------------------------------------------- url <-> state
 
@@ -123,6 +134,7 @@ const SLIDERS: SliderSpec[] = [
   { key: "lineWidth", min: 1, max: 160 },
   { key: "gap", min: 0, max: 80 },
   { key: "holeSize", min: 2, max: 512 },
+  { key: "bandGap", min: 0, max: 128 },
   { key: "cornerRadius", min: 0, max: 64 },
   { key: "padding", min: 0, max: 256 },
   { key: "gradientAngle", min: 0, max: 360, onlyFor: "linear" },
@@ -130,6 +142,24 @@ const SLIDERS: SliderSpec[] = [
 ];
 
 const sliderRows = new Map<NumericKey, HTMLElement>();
+
+function setSliderValue(key: NumericKey, value: number): void {
+  state[key] = value;
+  for (const input of sliderRows.get(key)!.querySelectorAll("input")) input.value = String(value);
+}
+
+/**
+ * `bandGap` and `holeSize` are two views of one degree of freedom (holeSize =
+ * size - 4·lineWidth - 2·bandGap): editing either recomputes the other, and
+ * size/lineWidth edits keep the hole and let `bandGap` follow.
+ */
+function syncLinkedParams(changed: NumericKey): void {
+  if (changed === "bandGap") {
+    setSliderValue("holeSize", state.size - 4 * state.lineWidth - 2 * state.bandGap);
+  } else if (changed === "holeSize" || changed === "size" || changed === "lineWidth") {
+    setSliderValue("bandGap", (state.size - 4 * state.lineWidth - state.holeSize) / 2);
+  }
+}
 
 for (const spec of SLIDERS) {
   const range = el("input", {
@@ -152,6 +182,7 @@ for (const spec of SLIDERS) {
     state[spec.key] = value;
     range.value = raw;
     number.value = raw;
+    syncLinkedParams(spec.key);
     render();
   };
   range.addEventListener("input", () => apply(range.value));
@@ -282,6 +313,7 @@ function render(): void {
     lineWidth: state.lineWidth,
     gap: state.gap,
     holeSize: state.holeSize,
+    bandGap: state.bandGap,
     cornerRadius: state.cornerRadius,
     padding: state.padding,
     precision: state.precision,
