@@ -18,8 +18,8 @@ export const DEFAULTS: Required<HexKnotParams> = {
   color: "#333333",
   background: null,
   precision: 1,
-  // The "Terracotta expanded" palette from color-palettes.ts.
-  colors: ["#287271", "#8ab17d", "#babb74", "#efb366", "#ee8959", "#e76f51"],
+  // The "Terracotta minimal" palette from color-palettes.ts.
+  colors: ["#7cb069", "#8ab17d", "#babb74", "#efb366", "#ee8959", "#e76f51"],
   gradient: "steps",
   gradientAngle: 45,
   idPrefix: "hk",
