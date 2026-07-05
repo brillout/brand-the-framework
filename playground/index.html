@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>hexknot playground</title>
+    <!-- Filled in by main.ts with the currently rendered mark. -->
+    <link rel="icon" type="image/svg+xml" href="data:," />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main>
+      <aside id="sidebar">
+        <h1>hexknot playground</h1>
+        <div id="controls"></div>
+        <div id="warnings" hidden></div>
+        <div id="actions">
+          <button id="reset" type="button">Reset</button>
+          <button id="copy" type="button">Copy SVG</button>
+          <button id="download" type="button">Download SVG</button>
+        </div>
+      </aside>
+      <section id="stage">
+        <div id="preview"></div>
+        <details id="source-details">
+          <summary>SVG source <span id="byte-count"></span></summary>
+          <pre id="source"></pre>
+        </details>
+      </section>
+    </main>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>
