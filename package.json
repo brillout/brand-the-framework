@@ -1,0 +1,21 @@
+{
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm run node-ts --watch hexknot.ts",
+    "build": "pnpm run node-ts hexknot.ts",
+    "========= Formatting": "",
+    "format": "oxfmt",
+    "========= Reset": "",
+    "reset": "git clean -Xdf && pnpm install && pnpm run build",
+    "===== Utils": "",
+    "// Run a .ts file with Node.js <=23 — these two flags aren't needed anymore on Node.js 24+": "",
+    "node-ts": "node --experimental-strip-types --no-warnings=ExperimentalWarning",
+    "========= Only allow pnpm; forbid yarn & npm": "",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "oxfmt": "^0.48.0",
+    "vite": "^8.0.11"
+  }
+}
