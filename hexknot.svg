@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-256 -295.6 512 591.2">
-  <path id="band" fill="#333333" d="M-185 -188.8 L-256 -147.8 L-256 46.2 L-65 156.5 L-17 128.7 L-208 18.5 L-208 -120.1 L-185 -133.4 Z"/>
-  <use href="#band" transform="rotate(60)"/>
-  <use href="#band" transform="rotate(120)"/>
-  <use href="#band" transform="rotate(180)"/>
-  <use href="#band" transform="rotate(240)"/>
-  <use href="#band" transform="rotate(300)"/>
+  <path fill="#f72585" d="M-185 -188.8 L-256 -147.8 L-256 46.2 L-65 156.5 L-17 128.7 L-208 18.5 L-208 -120.1 L-185 -133.4 Z"/>
+  <path fill="#b4179e" d="M71 -254.6 L0 -295.6 L-168 -198.6 L-168 21.9 L-120 49.7 L-120 -170.9 L0 -240.2 L23 -226.9 Z"/>
+  <path fill="#7209b7" d="M256 -65.8 L256 -147.8 L88 -244.8 L-103 -134.5 L-103 -79.1 L88 -189.4 L208 -120.1 L208 -93.5 Z"/>
+  <path fill="#5f69d4" d="M185 188.8 L256 147.8 L256 -46.2 L65 -156.5 L17 -128.7 L208 -18.5 L208 120.1 L185 133.4 Z"/>
+  <path fill="#4cc9f0" d="M-71 254.6 L0 295.6 L168 198.6 L168 -21.9 L120 -49.7 L120 170.9 L0 240.2 L-23 226.9 Z"/>
+  <path fill="#a277ba" d="M-256 65.8 L-256 147.8 L-88 244.8 L103 134.5 L103 79.1 L-88 189.4 L-208 120.1 L-208 93.5 Z"/>
 </svg>
