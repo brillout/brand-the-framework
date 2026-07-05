@@ -3,6 +3,8 @@
   "scripts": {
     "dev": "pnpm run node-ts --watch hexknot.ts",
     "build": "pnpm run node-ts hexknot.ts",
+    "========= Playground": "",
+    "playground": "vite playground",
     "========= Formatting": "",
     "format": "oxfmt",
     "========= Reset": "",

@@ -44,10 +44,6 @@
  * Import:  import { hexKnotSvg } from "./hexknot";
  */
 
-import { writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
 // ------------------------------------------------------------------ options
 
 export interface HexKnotParams {
@@ -441,17 +437,20 @@ function parseArgs(argv: string[]): { out: string; params: HexKnotParams } {
   return { out, params };
 }
 
-const isMain = (() => {
+// Node built-ins are imported lazily so the module also loads in the browser
+// (e.g. in the Vite playground), where they don't exist.
+const isMain = async (): Promise<boolean> => {
+  if (typeof process === "undefined" || process.argv?.[1] === undefined) return false;
   try {
-    return (
-      process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1])
-    );
+    const [{ fileURLToPath }, { resolve }] = await Promise.all([import("node:url"), import("node:path")]);
+    return fileURLToPath(import.meta.url) === resolve(process.argv[1]);
   } catch {
     return false;
   }
-})();
+};
 
-if (isMain) {
+if (await isMain()) {
+  const { writeFileSync } = await import("node:fs");
   const { out, params } = parseArgs(process.argv.slice(2));
   const svg = hexKnotSvg(params);
   writeFileSync(out, svg);
