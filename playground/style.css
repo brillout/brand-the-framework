@@ -119,6 +119,53 @@ h1 {
   gap: 2px;
 }
 
+/* ------------------------------------------------------------- palettes */
+
+.palettes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid #e4e4e7;
+}
+
+.palette-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.palette-group h2 {
+  width: 100%;
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a1a1aa;
+}
+
+button.palette {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.palette-swatches {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.palette-swatches span {
+  width: 8px;
+  height: 14px;
+}
+
 /* ----------------------------------------------------- warnings & actions */
 
 #warnings {

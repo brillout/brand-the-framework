@@ -3,6 +3,7 @@
  * live controls and grab the resulting SVG. Run with: pnpm run playground
  */
 
+import { COLOR_PALETTES, PALETTE_GROUPS } from "../color-palettes.ts";
 import { DEFAULTS, hexKnotSvg, type HexKnotParams } from "../hexknot.ts";
 
 // ------------------------------------------------------------------- state
@@ -222,6 +223,37 @@ backgroundPicker.addEventListener("input", () => {
 controls.append(
   el("div", { class: "control" }, el("span", {}, "background"), backgroundToggle, backgroundPicker),
 );
+
+// Preset palettes: clicking one replaces the colors, and the background when
+// the palette is designed for its own (dark) backdrop.
+const paletteGroups = PALETTE_GROUPS.map((group) =>
+  el(
+    "div",
+    { class: "palette-group" },
+    el("h2", {}, group),
+    ...COLOR_PALETTES.filter((palette) => palette.group === group).map((palette) => {
+      const swatches = el(
+        "span",
+        {
+          class: "palette-swatches",
+          style: palette.background ? `background: ${palette.background}` : "",
+        },
+        ...palette.colors.map((color) => el("span", { style: `background: ${color}` })),
+      );
+      const button = el("button", { type: "button", class: "palette" }, swatches, palette.name);
+      button.addEventListener("click", () => {
+        state.colors = [...palette.colors];
+        state.background = palette.background ?? null;
+        backgroundToggle.checked = state.background !== null;
+        if (state.background) backgroundPicker.value = state.background;
+        rebuildColorList();
+        render();
+      });
+      return button;
+    }),
+  ),
+);
+controls.append(el("div", { class: "palettes" }, ...paletteGroups));
 
 // ----------------------------------------------------------------- actions
 
