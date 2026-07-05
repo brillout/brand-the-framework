@@ -1,10 +1,9 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "pnpm run node-ts --watch hexknot.ts",
+    "dev": "vite playground --port 3000",
     "build": "pnpm run node-ts hexknot.ts",
-    "========= Playground": "",
-    "playground": "vite playground",
+    "build:watch": "pnpm run node-ts --watch hexknot.ts",
     "========= Formatting": "",
     "format": "oxfmt",
     "========= Reset": "",
