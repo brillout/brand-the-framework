@@ -51,10 +51,19 @@ jobs:
         uses: actions/deploy-pages@v4
         continue-on-error: true
       # The Pages backend intermittently rejects deployments with "Deployment
-      # failed, try again later." — so do exactly that, once, after a pause.
+      # failed, try again later." — so do exactly that, with backoff. It has
+      # failed twice 3 minutes apart, so the waits are generous.
       - name: Wait before retrying
         if: steps.deployment.outcome == 'failure'
-        run: sleep 30
-      - name: Deploy to GitHub Pages (retry)
+        run: sleep 60
+      - name: Deploy to GitHub Pages (retry 1)
+        id: deployment-retry-1
         if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait before retrying again
+        if: steps.deployment.outcome == 'failure' && steps.deployment-retry-1.outcome == 'failure'
+        run: sleep 120
+      - name: Deploy to GitHub Pages (retry 2)
+        if: steps.deployment.outcome == 'failure' && steps.deployment-retry-1.outcome == 'failure'
         uses: actions/deploy-pages@v4
