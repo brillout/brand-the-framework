@@ -21,7 +21,7 @@ body {
 main {
   display: grid;
   grid-template-columns: 340px 1fr;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 /* ------------------------------------------------------------- sidebar */
@@ -33,6 +33,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
 }
 
 h1 {
@@ -225,6 +226,7 @@ button:disabled {
   gap: 16px;
   padding: 32px;
   min-width: 0;
+  overflow-y: auto;
 }
 
 #preview {
@@ -274,11 +276,18 @@ button:disabled {
 @media (max-width: 760px) {
   main {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
   }
 
   #sidebar {
     border-right: none;
     border-bottom: 1px solid #e4e4e7;
+    overflow-y: visible;
+  }
+
+  #stage {
+    overflow-y: visible;
   }
 
   #preview {
