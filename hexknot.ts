@@ -78,11 +78,11 @@ export interface HexKnotParams {
 /** Defaults: three main colors, applied as solid stepped bands; `--colors=#333333` restores the flat original. */
 export const DEFAULTS: Required<HexKnotParams> = {
   size: 512,
-  lineWidth: 48,
+  lineWidth: 55,
   gap: 17,
   holeSize: 240,
-  cornerRadius: 0,
-  padding: 0,
+  cornerRadius: 10,
+  padding: 50,
   color: "#333333",
   background: null,
   precision: 1,
