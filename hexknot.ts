@@ -87,23 +87,9 @@ export interface HexKnotParams {
   precision?: number;
 }
 
-/** Defaults: three main colors, applied as solid stepped bands; `--colors=#333333` restores the flat original. */
-export const DEFAULTS: Required<HexKnotParams> = {
-  size: 512,
-  lineWidth: 55,
-  gap: 17,
-  holeSize: 240,
-  bandGap: 26, // = (size - 4 * lineWidth - holeSize) / 2 — kept in sync with the values above
-  cornerRadius: 10,
-  padding: 50,
-  color: "#333333",
-  background: null,
-  precision: 1,
-  colors: ["#f72585", "#7209b7", "#4cc9f0"],
-  gradient: "steps",
-  gradientAngle: 45,
-  idPrefix: "hk",
-};
+// The default parameters live in default.ts — they are the branding in use.
+import { DEFAULTS } from "./default.ts";
+export { DEFAULTS };
 
 type Resolved = Required<HexKnotParams>;
 
