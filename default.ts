@@ -4,7 +4,10 @@
  * the result here.
  */
 
+import { COLOR_PALETTES } from "./color-palettes.ts";
 import type { HexKnotParams } from "./hexknot.ts";
+
+const DEFAULT_PALETTE = COLOR_PALETTES.find((p) => p.name === "Terracotta minimal")!;
 
 /** Defaults: six earthy colors as solid stepped bands; `--colors=#333333` restores the flat original. */
 export const DEFAULTS: Required<HexKnotParams> = {
@@ -18,8 +21,7 @@ export const DEFAULTS: Required<HexKnotParams> = {
   color: "#333333",
   background: null,
   precision: 1,
-  // The "Terracotta minimal" palette from color-palettes.ts.
-  colors: ["#7cb069", "#8ab17d", "#babb74", "#efb366", "#ee8959", "#e76f51"],
+  colors: DEFAULT_PALETTE.colors,
   gradient: "steps",
   gradientAngle: 45,
   idPrefix: "hk",
