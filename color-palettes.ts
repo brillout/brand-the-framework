@@ -19,6 +19,8 @@ export const PALETTE_GROUPS = [
   // Accent colors on their native dark backgrounds.
   "Editor themes",
   "Designer & system",
+  // Warm earthy clay tones, spun off from the Terracotta palette.
+  "Terracotta",
   // Six shades of one color — the most minimal of the bunch.
   "Single-hue ramps",
   // Grays with a single color doing the talking.
@@ -134,11 +136,6 @@ export const COLOR_PALETTES: ColorPalette[] = [
     colors: ["#ef4444", "#f59e0b", "#10b981", "#0ea5e9", "#8b5cf6", "#ec4899"],
   },
   {
-    name: "Terracotta",
-    group: "Designer & system",
-    colors: ["#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"],
-  },
-  {
     name: "Vaporwave",
     group: "Designer & system",
     colors: ["#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96"],
@@ -163,6 +160,68 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: "Google",
     group: "Designer & system",
     colors: ["#4285f4", "#ea4335", "#fbbc05", "#34a853"],
+  },
+
+  // --------------------------------------------------------------- terracotta
+  {
+    name: "Terracotta",
+    group: "Terracotta",
+    colors: ["#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"],
+  },
+  {
+    name: "Terracotta expanded",
+    group: "Terracotta",
+    // The in-between hues from the 10-color expansion of the palette above.
+    colors: ["#287271", "#8ab17d", "#babb74", "#efb366", "#ee8959", "#e76f51"],
+  },
+  {
+    name: "Terra",
+    group: "Terracotta",
+    colors: ["#e07a5f", "#f2cc8f", "#81b29a", "#3d405b", "#f4f1de"],
+  },
+  {
+    name: "Olive & ochre",
+    group: "Terracotta",
+    colors: ["#bc6c25", "#dda15e", "#fefae0", "#606c38", "#283618"],
+  },
+  {
+    name: "Desert sage",
+    group: "Terracotta",
+    colors: ["#cb997e", "#ddbea9", "#ffe8d6", "#b7b7a4", "#a5a58d", "#6b705c"],
+  },
+  {
+    name: "Sunset mesa",
+    group: "Terracotta",
+    colors: ["#eaac8b", "#e56b6f", "#b56576", "#6d597a", "#355070"],
+  },
+  {
+    name: "Dusty rose",
+    group: "Terracotta",
+    colors: ["#ffcdb2", "#ffb4a2", "#e5989b", "#b5838d", "#6d6875"],
+  },
+  {
+    name: "Teal & terracotta",
+    group: "Terracotta",
+    colors: ["#008080", "#00abab", "#f1a56f", "#d6764b", "#ba4727"],
+  },
+  {
+    name: "Kiln",
+    group: "Terracotta",
+    // Fired-clay ramp, from scorched umber to soft peach.
+    colors: ["#6e2f1c", "#8a3f24", "#a8502c", "#c46138", "#d97e57", "#eba283"],
+  },
+  {
+    name: "Adobe night",
+    group: "Terracotta",
+    // Clay and ochre glowing against dark umber.
+    colors: ["#e2725b", "#f4a261", "#e9c46a", "#c98f70", "#a3685a", "#8c5b4f"],
+    background: "#2b1d16",
+  },
+  {
+    name: "Terracotta pop",
+    group: "Terracotta",
+    // One terracotta accent over warm neutrals, mirrored like the other pops.
+    colors: ["#e2725b", "#e7dccf", "#b3a696", "#5f5449", "#b3a696", "#e7dccf"],
   },
 
   // -------------------------------------------------------- single-hue ramps
