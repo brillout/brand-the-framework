@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-282 -321.6 564 643.2">
-  <path id="band" fill="#333333" d="M-178 -192.8 L-256 -147.8 L-256 31.2 L-68 139.7 L-23 113.7 L-211 5.2 L-211 -121.8 L-178 -140.9 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-256 -295.6 512 591.2">
+  <path id="band" fill="#333333" d="M-185 -188.8 L-256 -147.8 L-256 46.2 L-65 156.5 L-17 128.7 L-208 18.5 L-208 -120.1 L-185 -133.4 Z"/>
   <use href="#band" transform="rotate(60)"/>
   <use href="#band" transform="rotate(120)"/>
   <use href="#band" transform="rotate(180)"/>

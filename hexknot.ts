@@ -48,10 +48,10 @@ export interface HexKnotParams {
 /** Defaults reproduce the original mark. */
 export const DEFAULTS: Required<HexKnotParams> = {
   size: 512,
-  lineWidth: 45,
-  gap: 23,
-  holeSize: 220,
-  padding: 26,
+  lineWidth: 48,
+  gap: 17,
+  holeSize: 240,
+  padding: 0,
   color: "#333333",
   background: null,
   precision: 1,
