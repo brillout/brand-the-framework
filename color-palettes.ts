@@ -75,6 +75,30 @@ export const COLOR_PALETTES: ColorPalette[] = [
     colors: ["#e67e80", "#e69875", "#dbbc7f", "#a7c080", "#7fbbb3", "#d699b6"],
     background: "#2d353b",
   },
+  {
+    name: "One Dark",
+    group: "Editor themes",
+    colors: ["#e06c75", "#d19a66", "#e5c07b", "#98c379", "#61afef", "#c678dd"],
+    background: "#282c34",
+  },
+  {
+    name: "Monokai",
+    group: "Editor themes",
+    colors: ["#f92672", "#fd971f", "#e6db74", "#a6e22e", "#66d9ef", "#ae81ff"],
+    background: "#272822",
+  },
+  {
+    name: "Kanagawa",
+    group: "Editor themes",
+    colors: ["#e46876", "#ffa066", "#e6c384", "#98bb6c", "#7fb4ca", "#957fb8"],
+    background: "#1f1f28",
+  },
+  {
+    name: "Night Owl",
+    group: "Editor themes",
+    colors: ["#ef5350", "#f78c6c", "#ecc48d", "#addb67", "#82aaff", "#c792ea"],
+    background: "#011627",
+  },
 
   // ------------------------------------------------------- designer & system
   {
@@ -120,6 +144,26 @@ export const COLOR_PALETTES: ColorPalette[] = [
     colors: ["#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96"],
     background: "#1a1a2e",
   },
+  {
+    name: "Okabe–Ito (colorblind-safe)",
+    group: "Designer & system",
+    colors: ["#d55e00", "#e69f00", "#f0e442", "#009e73", "#56b4e9", "#cc79a7"],
+  },
+  {
+    name: "Pastel rainbow",
+    group: "Designer & system",
+    colors: ["#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#a0c4ff", "#bdb2ff"],
+  },
+  {
+    name: "Tropical",
+    group: "Designer & system",
+    colors: ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#073b4c"],
+  },
+  {
+    name: "Google",
+    group: "Designer & system",
+    colors: ["#4285f4", "#ea4335", "#fbbc05", "#34a853"],
+  },
 
   // -------------------------------------------------------- single-hue ramps
   {
@@ -142,6 +186,16 @@ export const COLOR_PALETTES: ColorPalette[] = [
     group: "Single-hue ramps",
     colors: ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8"],
   },
+  {
+    name: "Grape",
+    group: "Single-hue ramps",
+    colors: ["#4c1d95", "#5b21b6", "#6d28d9", "#7c3aed", "#8b5cf6", "#a78bfa"],
+  },
+  {
+    name: "Rose",
+    group: "Single-hue ramps",
+    colors: ["#881337", "#9f1239", "#be123c", "#e11d48", "#f43f5e", "#fb7185"],
+  },
 
   // ---------------------------------------------------------- minimal accent
   {
@@ -163,5 +217,10 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: "Mint pop",
     group: "Minimal accent",
     colors: ["#10b981", "#1f2937", "#9ca3af", "#d1d5db", "#9ca3af", "#1f2937"],
+  },
+  {
+    name: "Indigo pop",
+    group: "Minimal accent",
+    colors: ["#6366f1", "#d1d5db", "#6b7280", "#111827", "#6b7280", "#d1d5db"],
   },
 ];
