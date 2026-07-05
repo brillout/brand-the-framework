@@ -196,6 +196,46 @@ export const COLOR_PALETTES: ColorPalette[] = [
     group: "Single-hue ramps",
     colors: ["#881337", "#9f1239", "#be123c", "#e11d48", "#f43f5e", "#fb7185"],
   },
+  {
+    name: "Ember",
+    group: "Single-hue ramps",
+    colors: ["#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171"],
+  },
+  {
+    name: "Honey",
+    group: "Single-hue ramps",
+    colors: ["#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24"],
+  },
+  {
+    name: "Moss",
+    group: "Single-hue ramps",
+    colors: ["#365314", "#3f6212", "#4d7c0f", "#65a30d", "#84cc16", "#a3e635"],
+  },
+  {
+    name: "Lagoon",
+    group: "Single-hue ramps",
+    colors: ["#134e4a", "#115e59", "#0f766e", "#0d9488", "#14b8a6", "#2dd4bf"],
+  },
+  {
+    name: "Glacier",
+    group: "Single-hue ramps",
+    colors: ["#164e63", "#155e75", "#0e7490", "#0891b2", "#06b6d4", "#22d3ee"],
+  },
+  {
+    name: "Cobalt",
+    group: "Single-hue ramps",
+    colors: ["#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa"],
+  },
+  {
+    name: "Iris",
+    group: "Single-hue ramps",
+    colors: ["#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8"],
+  },
+  {
+    name: "Orchid",
+    group: "Single-hue ramps",
+    colors: ["#701a75", "#86198f", "#a21caf", "#c026d3", "#d946ef", "#e879f9"],
+  },
 
   // ---------------------------------------------------------- minimal accent
   {
