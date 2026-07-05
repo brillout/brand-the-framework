@@ -50,7 +50,7 @@ export const DEFAULTS: Required<HexKnotParams> = {
   size: 512,
   lineWidth: 45,
   gap: 23,
-  holeSize: 179,
+  holeSize: 220,
   padding: 26,
   color: "#333333",
   background: null,
