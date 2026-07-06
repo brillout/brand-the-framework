@@ -194,10 +194,6 @@ function bandEdges(p: Resolved): Line[] {
 const corners = (edges: Line[]): Vec[] =>
   edges.map((edge, i) => intersect(edges[(i + edges.length - 1) % edges.length], edge));
 
-/** Corners of the base band for given params (P0..P7); handy for testing and custom rendering. */
-export const bandCorners = (params: HexKnotParams = {}): Vec[] =>
-  corners(bandEdges(resolve(params)));
-
 /**
  * Rounded corner i of a polygon: the two adjacent edges are trimmed back and
  * bridged by a circular arc. The trim distance is r / tan(θ/2) for interior
@@ -276,7 +272,7 @@ function validate(p: Resolved): void {
 type Rgb = readonly [number, number, number];
 
 /** "#rgb" or "#rrggbb" → [r, g, b]; null for anything else. */
-export function parseHex(color: string): Rgb | null {
+function parseHex(color: string): Rgb | null {
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
   if (!m) return null;
   const hex = m[1].length === 3 ? [...m[1]].map((ch) => ch + ch).join("") : m[1];
@@ -294,7 +290,7 @@ const toHex = (rgb: readonly number[]): string =>
     .join("");
 
 /** Sample a palette treated as a closed loop, t ∈ [0, 1] (t = 1 wraps to t = 0). */
-export function paletteAt(palette: readonly Rgb[], t: number): string {
+function paletteAt(palette: readonly Rgb[], t: number): string {
   const x = (((t % 1) + 1) % 1) * palette.length;
   const i = Math.floor(x) % palette.length;
   const f = x - Math.floor(x);
