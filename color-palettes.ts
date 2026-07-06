@@ -23,6 +23,8 @@ export const PALETTE_GROUPS = [
   "Terracotta",
   // Six shades of one color — the most minimal of the bunch.
   "Single-hue ramps",
+  // No color at all — blacks, whites, and the grays between.
+  "Grayscale",
   // Two colors alternating around the knot — no blends, like Bauhaus.
   "Duotone",
   // Grays with a single color doing the talking.
@@ -325,7 +327,47 @@ export const COLOR_PALETTES: ColorPalette[] = [
     colors: ["#5f0f8a", "#7813ae", "#9117d3", "#a62ce8", "#b551ec", "#c575f0"],
   },
 
+  // ---------------------------------------------------------------- grayscale
+  {
+    name: "Ansel",
+    group: "Grayscale",
+    // The full tonal range, pure black to pure white.
+    colors: ["#000000", "#333333", "#666666", "#999999", "#cccccc", "#ffffff"],
+  },
+  {
+    name: "Graphite",
+    group: "Grayscale",
+    // The dark end: charcoal blacks up to mid gray.
+    colors: ["#0a0a0a", "#171717", "#262626", "#404040", "#525252", "#737373"],
+  },
+  {
+    name: "Silver",
+    group: "Grayscale",
+    // The light end: mid gray up to pure white.
+    colors: ["#737373", "#a3a3a3", "#d4d4d4", "#e5e5e5", "#f5f5f5", "#ffffff"],
+  },
+  {
+    name: "Stone",
+    group: "Grayscale",
+    // Warm grays, tinted toward brown.
+    colors: ["#292524", "#44403c", "#57534e", "#78716c", "#a8a29e", "#d6d3d1"],
+  },
+  {
+    name: "Zinc",
+    group: "Grayscale",
+    // Cool grays, tinted toward blue.
+    colors: ["#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#d4d4d8"],
+  },
+  {
+    name: "Moonlight",
+    group: "Grayscale",
+    // Silvery grays glowing on near-black.
+    colors: ["#525252", "#737373", "#a3a3a3", "#d4d4d4", "#f5f5f5", "#ffffff"],
+    background: "#0a0a0a",
+  },
+
   // ------------------------------------------------------------------ duotone
+  duotone("Black & white", "#111111", "#f5f5f5"),
   duotone("Ink duotone", "#0f172a", "#e2e8f0"),
   duotone("Blueprint", "#1e40af", "#dbeafe"),
   duotone("Crimson & cream", "#dc2626", "#fef3c7"),
