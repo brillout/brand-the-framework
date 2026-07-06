@@ -90,16 +90,20 @@ export { DEFAULTS };
 type Resolved = Required<HexKnotParams>;
 
 /**
- * Fill in defaults and reconcile `bandGap` <-> `holeSize`, two views of one
- * degree of freedom: an explicit `bandGap` derives the hole and wins over
- * `holeSize`; otherwise `holeSize` (given or default) drives and `bandGap`
- * is derived, so the resolved params are always mutually consistent.
+ * Fill in defaults and reconcile params that describe the same thing twice:
+ * - `bandGap` <-> `holeSize` are two views of one degree of freedom: an
+ *   explicit `bandGap` derives the hole and wins over `holeSize`; otherwise
+ *   `holeSize` (given or default) drives and `bandGap` is derived.
+ * - `colors` wins over `color`; passing only `color` opts out of the default
+ *   palette. The resolved `colors` is never empty, so it IS the palette.
  */
 function resolve(params: HexKnotParams): Resolved {
   const warnToConsole = (message: string): void => console.warn(`[hexknot] warning: ${message}`);
   const p: Resolved = { onWarn: warnToConsole, ...DEFAULTS, ...params };
   if (params.bandGap !== undefined) p.holeSize = p.size - 4 * p.lineWidth - 2 * p.bandGap;
   else p.bandGap = (p.size - 4 * p.lineWidth - p.holeSize) / 2;
+  if (params.colors === undefined && params.color !== undefined) p.colors = [params.color];
+  if (p.colors.length === 0) p.colors = [p.color];
   return p;
 }
 
@@ -281,10 +285,7 @@ export function paletteAt(palette: readonly Rgb[], t: number): string {
 export function hexKnotSvg(params: HexKnotParams = {}): string {
   const p = resolve(params);
   validate(p);
-
-  // `colors` wins over `color`; passing only `color` opts out of the default palette.
-  const requested = params.colors ?? (params.color !== undefined ? [params.color] : p.colors);
-  const palette = requested.length > 0 ? requested : [p.color];
+  const palette = p.colors;
 
   const fmt = (n: number): string => {
     const s = n.toFixed(p.precision);
