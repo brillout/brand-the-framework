@@ -30,8 +30,8 @@
  *   "flow"    smooth sweep around the ring (per-band linear gradients).
  *   "linear"  one straight gradient across the whole mark; direction set by
  *             gradientAngle (0 = left→right, 90 = top→bottom, 45 = diagonal).
- * One color (or --color=...) gives the flat mark. "steps" and "flow" blend
- * colors themselves, so they need hex colors (#rgb / #rrggbb).
+ * One color (or the `color` param) gives the flat mark. "steps" and "flow"
+ * blend colors themselves, so they need hex colors (#rgb / #rrggbb).
  *
  * Corners
  * -------
@@ -310,6 +310,8 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
 
   const fmt = (n: number): string => {
     const s = n.toFixed(p.precision);
+    // Trailing zeros only exist after a decimal point; at precision 0 there is
+    // none, and stripping would corrupt integers ("120" -> "12").
     const trimmed = p.precision ? s.replace(/0+$/, "").replace(/\.$/, "") : s;
     return trimmed === "-0" ? "0" : trimmed;
   };
