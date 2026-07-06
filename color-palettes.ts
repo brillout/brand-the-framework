@@ -379,8 +379,20 @@ export const COLOR_PALETTES: ColorPalette[] = [
   duotone("Charcoal & chartreuse", "#1f2937", "#a3e635"),
   duotone("Clay & linen", "#e2725b", "#f4f1de"),
   duotone("Espresso & foam", "#3e2723", "#ece0d1"),
+  duotone("Navy & tangerine", "#1e3a8a", "#fb923c"),
+  duotone("Burgundy & gold", "#7f1d1d", "#fbbf24"),
+  duotone("Emerald & blush", "#059669", "#fbcfe8"),
+  duotone("Cherry & mint", "#e11d48", "#99f6e4"),
+  duotone("Indigo & ice", "#4338ca", "#e0f2fe"),
+  duotone("Olive & apricot", "#606c38", "#fdba74"),
+  duotone("Fuchsia & lemon", "#c026d3", "#fef08a"),
+  duotone("Pine & rose", "#134e4a", "#fda4af"),
+  duotone("Lime & grape", "#84cc16", "#6d28d9"),
+  duotone("Rust & sky", "#9a3412", "#7dd3fc"),
   duotone("Neon noir", "#22d3ee", "#f472b6", "#0b1120"),
   duotone("Aurora", "#34d399", "#818cf8", "#0f172a"),
+  duotone("Ultraviolet", "#a78bfa", "#f0abfc", "#1e1b4b"),
+  duotone("Ember night", "#f97316", "#facc15", "#1c1917"),
 
   // ---------------------------------------------------------- minimal accent
   {
