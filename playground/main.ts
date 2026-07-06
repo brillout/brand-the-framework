@@ -39,6 +39,7 @@ const SLIDERS: Record<NumericKey, SliderSpec> = {
   bandGap: { min: 0, max: 128 },
   cornerRadius: { min: 0, max: 64 },
   padding: { min: 0, max: 256 },
+  rotation: { min: 0, max: 360 },
   gradientAngle: { min: 0, max: 360, onlyFor: "linear" },
   precision: { min: 0, max: 6 },
 };
