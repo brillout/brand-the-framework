@@ -16,36 +16,11 @@ import {
 
 // ------------------------------------------------------------------- state
 
-interface State {
-  size: number;
-  lineWidth: number;
-  gap: number;
-  holeSize: number;
-  bandGap: number;
-  cornerRadius: number;
-  padding: number;
-  precision: number;
-  gradient: Gradient;
-  gradientAngle: number;
-  colors: string[];
-  /** null = transparent */
-  background: string | null;
-}
+// The playground drives every visual parameter; `color` (subsumed by
+// `colors`) and `idPrefix` stay at their defaults.
+type State = Omit<Required<HexKnotParams>, "color" | "idPrefix" | "onWarn">;
 
-const stateDefaults: State = {
-  size: DEFAULTS.size,
-  lineWidth: DEFAULTS.lineWidth,
-  gap: DEFAULTS.gap,
-  holeSize: DEFAULTS.holeSize,
-  bandGap: DEFAULTS.bandGap,
-  cornerRadius: DEFAULTS.cornerRadius,
-  padding: DEFAULTS.padding,
-  precision: DEFAULTS.precision,
-  gradient: DEFAULTS.gradient,
-  gradientAngle: DEFAULTS.gradientAngle,
-  colors: [...DEFAULTS.colors],
-  background: DEFAULTS.background,
-};
+const { color: _color, idPrefix: _idPrefix, ...stateDefaults } = DEFAULTS;
 
 const NUMERIC_KEYS = [
   "size",
@@ -331,24 +306,8 @@ let currentSvg = "";
 
 function render(): void {
   const warnings: string[] = [];
-  const params: HexKnotParams = {
-    size: state.size,
-    lineWidth: state.lineWidth,
-    gap: state.gap,
-    holeSize: state.holeSize,
-    bandGap: state.bandGap,
-    cornerRadius: state.cornerRadius,
-    padding: state.padding,
-    precision: state.precision,
-    gradient: state.gradient,
-    gradientAngle: state.gradientAngle,
-    colors: state.colors,
-    background: state.background,
-    onWarn: (message) => warnings.push(message),
-  };
-
   try {
-    currentSvg = hexKnotSvg(params);
+    currentSvg = hexKnotSvg({ ...state, onWarn: (message) => warnings.push(message) });
     preview.innerHTML = currentSvg;
     source.textContent = currentSvg;
     byteCount.textContent = `(${currentSvg.length} bytes)`;
