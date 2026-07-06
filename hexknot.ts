@@ -71,6 +71,11 @@ export interface HexKnotParams {
   cornerRadius?: number;
   /** Margin between the artwork and the edge of the viewBox. */
   padding?: number;
+  /**
+   * Rotation of the whole mark in degrees, clockwise. The bands carry their
+   * colors along, so a multi-color mark only repeats every full 360°.
+   */
+  rotation?: number;
   /** Color palette; 2+ entries color the bands, a single entry gives the flat mark. */
   colors?: string[];
   /** How the palette is applied: "flow" (sweep; "flow (old)" is the legacy inverted sweep), "steps" (solid bands), "linear" (straight gradient). */
@@ -330,10 +335,13 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
 
   // Geometry: the base band and its six rotated copies, rotated in code so the
   // whole file lives in one coordinate space (no transform/paint-server surprises).
-  // The hexagon's circumradius (center -> corner) is also half its total height.
+  // `rotation` turns the whole mark by folding into each band's angle.
+  // The hexagon's circumradius (center -> corner) is also half its total height
+  // at rotation 0.
   const circumradius = p.size / (2 * Math.cos(rad(30)));
+  const bandAngles = ANGLES.map((angle) => angle + p.rotation);
   const base = corners(bandEdges(p));
-  const bands = ANGLES.map((angle) => base.map((pt) => rot(pt, angle)));
+  const bands = bandAngles.map((angle) => base.map((pt) => rot(pt, angle)));
   const dOf = (poly: Vec[]): string =>
     poly
       .map((_, i) => {
@@ -395,7 +403,7 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
         const ends = [paletteAt(rgb, k / BAND_COUNT), paletteAt(rgb, (k + 1) / BAND_COUNT)];
         const [start, tip] = forward ? ends : ends.reverse();
         defs.push(
-          gradientEl(id, rot(from, ANGLES[k]), rot(to, ANGLES[k]), [
+          gradientEl(id, rot(from, bandAngles[k]), rot(to, bandAngles[k]), [
             [0, start],
             [1, tip],
           ]),
@@ -411,9 +419,12 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
     }
   }
 
-  // Everything is drawn around (0,0), so the viewBox is symmetric about the origin.
-  const halfW = p.size / 2 + p.padding;
-  const halfH = circumradius + p.padding;
+  // Everything is drawn around (0,0), so the viewBox is symmetric about the
+  // origin. The bounds hug the hexagon's convex hull: its corners sit at the
+  // circumradius, at 90° + rotation and every 60° onward.
+  const hexCorners = ANGLES.map((angle) => unit(angle + 90 + p.rotation));
+  const halfW = circumradius * Math.max(...hexCorners.map(([x]) => Math.abs(x))) + p.padding;
+  const halfH = circumradius * Math.max(...hexCorners.map(([, y]) => Math.abs(y))) + p.padding;
   const [x, y, w, h] = [-halfW, -halfH, 2 * halfW, 2 * halfH].map(fmt);
 
   return [
