@@ -90,18 +90,38 @@ export { DEFAULTS };
 type Resolved = Required<HexKnotParams>;
 
 /**
+ * `bandGap` and `holeSize` are two views of one degree of freedom
+ * (holeSize = size - 4·lineWidth - 2·bandGap); each helper derives one
+ * view from the other.
+ */
+export function holeSizeFromBandGap(p: {
+  size: number;
+  lineWidth: number;
+  bandGap: number;
+}): number {
+  return p.size - 4 * p.lineWidth - 2 * p.bandGap;
+}
+export function bandGapFromHoleSize(p: {
+  size: number;
+  lineWidth: number;
+  holeSize: number;
+}): number {
+  return (p.size - 4 * p.lineWidth - p.holeSize) / 2;
+}
+
+/**
  * Fill in defaults and reconcile params that describe the same thing twice:
- * - `bandGap` <-> `holeSize` are two views of one degree of freedom: an
- *   explicit `bandGap` derives the hole and wins over `holeSize`; otherwise
- *   `holeSize` (given or default) drives and `bandGap` is derived.
+ * - `bandGap` <-> `holeSize`: an explicit `bandGap` derives the hole and wins
+ *   over `holeSize`; otherwise `holeSize` (given or default) drives and
+ *   `bandGap` is derived.
  * - `colors` wins over `color`; passing only `color` opts out of the default
  *   palette. The resolved `colors` is never empty, so it IS the palette.
  */
 function resolve(params: HexKnotParams): Resolved {
   const warnToConsole = (message: string): void => console.warn(`[hexknot] warning: ${message}`);
   const p: Resolved = { onWarn: warnToConsole, ...DEFAULTS, ...params };
-  if (params.bandGap !== undefined) p.holeSize = p.size - 4 * p.lineWidth - 2 * p.bandGap;
-  else p.bandGap = (p.size - 4 * p.lineWidth - p.holeSize) / 2;
+  if (params.bandGap !== undefined) p.holeSize = holeSizeFromBandGap(p);
+  else p.bandGap = bandGapFromHoleSize(p);
   if (params.colors === undefined && params.color !== undefined) p.colors = [params.color];
   if (p.colors.length === 0) p.colors = [p.color];
   return p;

@@ -4,7 +4,13 @@
  */
 
 import { COLOR_PALETTES, PALETTE_GROUPS } from "../color-palettes.ts";
-import { DEFAULTS, hexKnotSvg, type HexKnotParams } from "../hexknot.ts";
+import {
+  bandGapFromHoleSize,
+  DEFAULTS,
+  hexKnotSvg,
+  holeSizeFromBandGap,
+  type HexKnotParams,
+} from "../hexknot.ts";
 
 // ------------------------------------------------------------------- state
 
@@ -57,12 +63,12 @@ type NumericKey = (typeof NUMERIC_KEYS)[number];
 
 const urlState = paramsFromUrl();
 const state: State = { ...stateDefaults, colors: [...stateDefaults.colors], ...urlState };
-// `bandGap` and `holeSize` describe the same degree of freedom (holeSize =
-// size - 4·lineWidth - 2·bandGap); reconcile whichever one the URL left out.
+// `bandGap` and `holeSize` describe the same degree of freedom; reconcile
+// whichever one the URL left out.
 if (urlState.bandGap !== undefined && urlState.holeSize === undefined) {
-  state.holeSize = state.size - 4 * state.lineWidth - 2 * state.bandGap;
+  state.holeSize = holeSizeFromBandGap(state);
 } else {
-  state.bandGap = (state.size - 4 * state.lineWidth - state.holeSize) / 2;
+  state.bandGap = bandGapFromHoleSize(state);
 }
 
 // ------------------------------------------------------------- url <-> state
@@ -150,15 +156,15 @@ function setSliderValue(key: NumericKey, value: number): void {
 }
 
 /**
- * `bandGap` and `holeSize` are two views of one degree of freedom (holeSize =
- * size - 4·lineWidth - 2·bandGap): editing either recomputes the other, and
- * size/lineWidth edits keep the hole and let `bandGap` follow.
+ * `bandGap` and `holeSize` are two views of one degree of freedom: editing
+ * either recomputes the other, and size/lineWidth edits keep the hole and let
+ * `bandGap` follow.
  */
 function syncLinkedParams(changed: NumericKey): void {
   if (changed === "bandGap") {
-    setSliderValue("holeSize", state.size - 4 * state.lineWidth - 2 * state.bandGap);
+    setSliderValue("holeSize", holeSizeFromBandGap(state));
   } else if (changed === "holeSize" || changed === "size" || changed === "lineWidth") {
-    setSliderValue("bandGap", (state.size - 4 * state.lineWidth - state.holeSize) / 2);
+    setSliderValue("bandGap", bandGapFromHoleSize(state));
   }
 }
 
