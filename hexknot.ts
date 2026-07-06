@@ -293,18 +293,22 @@ function paletteAt(palette: readonly Rgb[], t: number): string {
 
 // --------------------------------------------------------------- svg output
 
+/** Coordinate formatter: `precision` decimals, trailing zeros stripped, no "-0". */
+const numberFormatter =
+  (precision: number) =>
+  (n: number): string => {
+    const s = n.toFixed(precision);
+    // Trailing zeros only exist after a decimal point; at precision 0 there is
+    // none, and stripping would corrupt integers ("120" -> "12").
+    const trimmed = precision ? s.replace(/0+$/, "").replace(/\.$/, "") : s;
+    return trimmed === "-0" ? "0" : trimmed;
+  };
+
 export function hexKnotSvg(params: HexKnotParams = {}): string {
   const p = resolve(params);
   validate(p);
   const palette = p.colors;
-
-  const fmt = (n: number): string => {
-    const s = n.toFixed(p.precision);
-    // Trailing zeros only exist after a decimal point; at precision 0 there is
-    // none, and stripping would corrupt integers ("120" -> "12").
-    const trimmed = p.precision ? s.replace(/0+$/, "").replace(/\.$/, "") : s;
-    return trimmed === "-0" ? "0" : trimmed;
-  };
+  const fmt = numberFormatter(p.precision);
 
   const pathEl = (d: string, fill: string): string => `  <path fill="${fill}" d="${d}"/>`;
 
