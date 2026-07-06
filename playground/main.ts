@@ -220,8 +220,15 @@ controls.append(
 
 // Background: transparent by default, optional solid color.
 const backgroundToggle = el("input", { type: "checkbox" });
-backgroundToggle.checked = state.background !== null;
-const backgroundPicker = el("input", { type: "color", value: state.background ?? "#ffffff" });
+const backgroundPicker = el("input", { type: "color", value: "#ffffff" });
+
+/** Point the toggle & picker at the current state.background. */
+function syncBackgroundControls(): void {
+  backgroundToggle.checked = state.background !== null;
+  if (state.background) backgroundPicker.value = state.background;
+}
+syncBackgroundControls();
+
 backgroundToggle.addEventListener("input", () => {
   state.background = backgroundToggle.checked ? backgroundPicker.value : null;
   render();
@@ -255,8 +262,7 @@ const paletteGroups = PALETTE_GROUPS.map((group) =>
       button.addEventListener("click", () => {
         state.colors = [...palette.colors];
         state.background = palette.background ?? null;
-        backgroundToggle.checked = state.background !== null;
-        if (state.background) backgroundPicker.value = state.background;
+        syncBackgroundControls();
         rebuildColorList();
         render();
       });
@@ -270,12 +276,9 @@ controls.append(el("div", { class: "palettes" }, ...paletteGroups));
 
 $("#reset").addEventListener("click", () => {
   Object.assign(state, stateDefaults, { colors: [...stateDefaults.colors] });
-  for (const spec of SLIDERS) {
-    const row = sliderRows.get(spec.key)!;
-    for (const input of row.querySelectorAll("input")) input.value = String(state[spec.key]);
-  }
+  for (const spec of SLIDERS) setSliderValue(spec.key, state[spec.key]);
   gradientSelect.value = state.gradient;
-  backgroundToggle.checked = state.background !== null;
+  syncBackgroundControls();
   rebuildColorList();
   render();
 });
