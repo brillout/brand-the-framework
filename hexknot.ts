@@ -46,6 +46,9 @@
 
 // ------------------------------------------------------------------ options
 
+export const GRADIENTS = ["steps", "flow", "linear"] as const;
+export type Gradient = (typeof GRADIENTS)[number];
+
 export interface HexKnotParams {
   /** Overall width of the hexagon, flat side to flat side. (Total height = size / cos 30° ≈ 1.155 × size.) */
   size?: number;
@@ -70,7 +73,7 @@ export interface HexKnotParams {
   /** Color palette; 2+ entries color the bands. Takes precedence over `color`. */
   colors?: string[];
   /** How the palette is applied: "steps" (solid bands), "flow" (sweep), "linear" (straight gradient). */
-  gradient?: "steps" | "flow" | "linear";
+  gradient?: Gradient;
   /** Direction of the "linear" gradient in degrees: 0 = left→right, 90 = top→bottom. */
   gradientAngle?: number;
   /** Background color; keep null for transparent. */
@@ -261,8 +264,8 @@ function validate(p: Resolved): void {
       "bandGap must exceed gap, or a band collides with the neighbor it runs alongside — raise bandGap/size or lower lineWidth/holeSize/gap",
     ],
     [
-      !["steps", "flow", "linear"].includes(p.gradient),
-      `unknown gradient "${p.gradient}" — using "steps" (options: steps, flow, linear)`,
+      !GRADIENTS.includes(p.gradient),
+      `unknown gradient "${p.gradient}" — using "steps" (options: ${GRADIENTS.join(", ")})`,
     ],
   ];
   for (const [bad, msg] of problems) if (bad) p.onWarn(msg);

@@ -7,14 +7,14 @@ import { COLOR_PALETTES, PALETTE_GROUPS } from "../color-palettes.ts";
 import {
   bandGapFromHoleSize,
   DEFAULTS,
+  type Gradient,
+  GRADIENTS,
   hexKnotSvg,
-  holeSizeFromBandGap,
   type HexKnotParams,
+  holeSizeFromBandGap,
 } from "../hexknot.ts";
 
 // ------------------------------------------------------------------- state
-
-type Gradient = Required<HexKnotParams>["gradient"];
 
 interface State {
   size: number;
@@ -47,7 +47,6 @@ const stateDefaults: State = {
   background: DEFAULTS.background,
 };
 
-const GRADIENTS: Gradient[] = ["steps", "flow", "linear"];
 const NUMERIC_KEYS = [
   "size",
   "lineWidth",
