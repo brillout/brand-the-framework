@@ -326,12 +326,6 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
       })
       .join(" ") + " Z";
 
-  /** Blending needs hex colors; returns null when the palette can't be blended. */
-  const hexPalette = (): Rgb[] | null => {
-    const rgb = palette.map(parseHex);
-    return rgb.every((c): c is Rgb => c !== null) ? rgb : null;
-  };
-
   /** One path per band, each with its own solid fill. */
   const solidBands = (colorOf: (k: number) => string): string[] =>
     bands.map((band, k) => pathEl(dOf(band), colorOf(k)));
@@ -356,14 +350,18 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
       ),
     );
     body = [pathEl(bands.map(dOf).join(" "), `url(#${id})`)];
-  } else if (p.gradient === "flow") {
-    // Smooth sweep: band k blends from palette(k/6) to palette((k+1)/6) along
-    // its own start→tip axis, so the colors run once around the ring and wrap.
-    const rgb = hexPalette();
+  } else {
+    // "flow" and "steps" blend colors themselves, which needs a hex palette.
+    const parsed = palette.map(parseHex);
+    const rgb = parsed.every((c): c is Rgb => c !== null) ? parsed : null;
     if (!rgb) {
-      p.onWarn('gradient "flow" needs hex colors — using solid per-band colors instead');
+      p.onWarn(
+        `gradient "${p.gradient}" blends colors, which needs hex — cycling the palette per band instead`,
+      );
       body = solidBands((k) => palette[k % palette.length]);
-    } else {
+    } else if (p.gradient === "flow") {
+      // Smooth sweep: band k blends from palette(k/6) to palette((k+1)/6) along
+      // its own start→tip axis, so the colors run once around the ring and wrap.
       const from = mid(base[7], base[0]); // middle of the start cut
       const to = mid(base[3], base[4]); //   middle of the tip cut
       body = bands.map((band, k) => {
@@ -376,18 +374,10 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
         );
         return pathEl(dOf(band), `url(#${id})`);
       });
-    }
-  } else {
-    // "steps" (default): every band is ONE solid color, sampled from the
-    // closed palette loop at the band's position around the ring. Main colors
-    // land evenly spaced; each band between two mains gets their solid blend.
-    const rgb = hexPalette();
-    if (!rgb) {
-      p.onWarn(
-        'gradient "steps" blends colors, which needs hex — cycling the palette per band instead',
-      );
-      body = solidBands((k) => palette[k % palette.length]);
     } else {
+      // "steps" (default): every band is ONE solid color, sampled from the
+      // closed palette loop at the band's position around the ring. Main colors
+      // land evenly spaced; each band between two mains gets their solid blend.
       body = solidBands((k) => paletteAt(rgb, k / BAND_COUNT));
     }
   }
