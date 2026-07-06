@@ -58,12 +58,14 @@ function paramsFromUrl(): Partial<State> {
   }
   const gradient = query.get("gradient");
   if (gradient && GRADIENTS.includes(gradient as Gradient)) partial.gradient = gradient as Gradient;
-  const colors = query.get("colors");
-  if (colors)
-    partial.colors = colors
-      .split(",")
-      .map((c) => c.trim())
-      .filter(Boolean);
+  // Like the numeric params, a colors list that is effectively empty
+  // (?colors=,,) is ignored.
+  const colors = query
+    .get("colors")
+    ?.split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+  if (colors?.length) partial.colors = colors;
   if (query.has("background")) partial.background = query.get("background") || null;
   return partial;
 }
