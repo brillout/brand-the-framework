@@ -47,7 +47,8 @@ const NUMERIC_KEYS = Object.keys(SLIDERS) as NumericKey[];
 const urlState = paramsFromUrl();
 const state: State = { ...stateDefaults, colors: [...stateDefaults.colors], ...urlState };
 // `bandGap` and `holeSize` describe the same degree of freedom; reconcile
-// whichever one the URL left out.
+// whichever one the URL left out. Links written by syncUrl only carry
+// holeSize, but a hand-written (or old) bandGap-only URL still works.
 if (urlState.bandGap !== undefined && urlState.holeSize === undefined) {
   state.holeSize = holeSizeFromBandGap(state);
 } else {
@@ -82,6 +83,9 @@ function paramsFromUrl(): Partial<State> {
 function syncUrl(): void {
   const query = new URLSearchParams();
   for (const key of NUMERIC_KEYS) {
+    // bandGap is derived from size/lineWidth/holeSize — writing those three
+    // reconstructs it on load, so the URL stays free of redundant state.
+    if (key === "bandGap") continue;
     if (state[key] !== stateDefaults[key]) query.set(key, String(state[key]));
   }
   if (state.gradient !== stateDefaults.gradient) query.set("gradient", state.gradient);
