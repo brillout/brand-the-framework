@@ -52,8 +52,9 @@ function paramsFromUrl(): Partial<State> {
   const query = new URLSearchParams(location.search);
   const partial: Partial<State> = {};
   for (const key of NUMERIC_KEYS) {
+    // `raw` must be non-empty: Number("") is 0, not NaN.
     const raw = query.get(key);
-    if (raw !== null && !Number.isNaN(Number(raw))) partial[key] = Number(raw);
+    if (raw && !Number.isNaN(Number(raw))) partial[key] = Number(raw);
   }
   const gradient = query.get("gradient");
   if (gradient && GRADIENTS.includes(gradient as Gradient)) partial.gradient = gradient as Gradient;
