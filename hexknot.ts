@@ -112,6 +112,8 @@ export function bandGapFromHoleSize(p: {
   return (p.size - 4 * p.lineWidth - p.holeSize) / 2;
 }
 
+const warnToConsole = (message: string): void => console.warn(`[hexknot] warning: ${message}`);
+
 /**
  * Fill in defaults and reconcile params that describe the same thing twice:
  * - `bandGap` <-> `holeSize`: an explicit `bandGap` derives the hole and wins
@@ -121,7 +123,6 @@ export function bandGapFromHoleSize(p: {
  *   palette. The resolved `colors` is never empty, so it IS the palette.
  */
 function resolve(params: HexKnotParams): Resolved {
-  const warnToConsole = (message: string): void => console.warn(`[hexknot] warning: ${message}`);
   const p: Resolved = { onWarn: warnToConsole, ...DEFAULTS, ...params };
   if (params.bandGap !== undefined) p.holeSize = holeSizeFromBandGap(p);
   else p.bandGap = bandGapFromHoleSize(p);
