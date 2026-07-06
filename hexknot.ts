@@ -27,11 +27,14 @@
  *             colors are spread evenly around the ring and each band between
  *             two mains carries their solid blend — a stepped gradient. With
  *             3 mains on 6 bands: main, blend, main, blend, main, blend.
- *   "flow"    smooth sweep around the ring (per-band linear gradients).
+ *   "flow"    smooth sweep around the ring (per-band linear gradients),
+ *             oriented so matching colors sit nearby where bands meet.
+ *   "flow (old)"  the original flow, whose per-band blend ran the other way —
+ *             colors clashed where one band tucks under the next.
  *   "linear"  one straight gradient across the whole mark; direction set by
  *             gradientAngle (0 = left→right, 90 = top→bottom, 45 = diagonal).
- * One color gives the flat mark. "steps" and "flow" blend colors themselves,
- * so they need hex colors (#rgb / #rrggbb).
+ * One color gives the flat mark. "steps" and the flows blend colors
+ * themselves, so they need hex colors (#rgb / #rrggbb).
  *
  * Corners
  * -------
@@ -46,7 +49,7 @@
 
 // ------------------------------------------------------------------ options
 
-export const GRADIENTS = ["steps", "flow", "linear"] as const;
+export const GRADIENTS = ["steps", "flow", "flow (old)", "linear"] as const;
 export type Gradient = (typeof GRADIENTS)[number];
 
 export interface HexKnotParams {
@@ -70,7 +73,7 @@ export interface HexKnotParams {
   padding?: number;
   /** Color palette; 2+ entries color the bands, a single entry gives the flat mark. */
   colors?: string[];
-  /** How the palette is applied: "steps" (solid bands), "flow" (sweep), "linear" (straight gradient). */
+  /** How the palette is applied: "steps" (solid bands), "flow" (sweep; "flow (old)" is the legacy inverted sweep), "linear" (straight gradient). */
   gradient?: Gradient;
   /** Direction of the "linear" gradient in degrees: 0 = left→right, 90 = top→bottom. */
   gradientAngle?: number;
@@ -375,17 +378,26 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
         `gradient "${p.gradient}" blends colors, which needs hex — cycling the palette per band instead`,
       );
       body = solidBands((k) => palette[k % palette.length]);
-    } else if (p.gradient === "flow") {
-      // Smooth sweep: band k blends from palette(k/6) to palette((k+1)/6) along
-      // its own start→tip axis, so the colors run once around the ring and wrap.
+    } else if (p.gradient === "flow" || p.gradient === "flow (old)") {
+      // Smooth sweep: per-band linear gradients along each band's start→tip
+      // axis, palette positions advancing 1/6 per band so the colors run once
+      // around the ring and wrap. Band k's tip tucks under band k-1 and its
+      // start emerges from under band k+1, each near 60% of the covering
+      // band's axis — so "flow" blends BACKWARDS, palette((k+1)/6) at the
+      // start down to palette(k/6) at the tip, landing each seam's two colors
+      // within half a palette step of each other. "flow (old)" is the
+      // original forward blend, whose seams clashed ~1.5 steps apart.
       const from = mid(base[7], base[0]); // middle of the start cut
       const to = mid(base[3], base[4]); //   middle of the tip cut
+      const forward = p.gradient === "flow (old)";
       body = bands.map((band, k) => {
         const id = `${p.idPrefix}-g${k}`;
+        const ends = [paletteAt(rgb, k / BAND_COUNT), paletteAt(rgb, (k + 1) / BAND_COUNT)];
+        const [start, tip] = forward ? ends : ends.reverse();
         defs.push(
           gradientEl(id, rot(from, ANGLES[k]), rot(to, ANGLES[k]), [
-            [0, paletteAt(rgb, k / BAND_COUNT)],
-            [1, paletteAt(rgb, (k + 1) / BAND_COUNT)],
+            [0, start],
+            [1, tip],
           ]),
         );
         return pathEl(dOf(band), `url(#${id})`);
