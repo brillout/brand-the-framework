@@ -33,7 +33,6 @@
  * One color (or --color=...) gives the flat mark. "steps" and "flow" blend
  * colors themselves, so they need hex colors (#rgb / #rrggbb).
  *
-
  * Corners
  * -------
  * `cornerRadius` rounds every band corner — the SVG-path equivalent of CSS
@@ -41,13 +40,8 @@
  * bridged with a circular arc). The radius is automatically capped per corner
  * so roundings never overlap on short edges. 0 (default) keeps sharp corners.
  *
- * Run:     npx tsx hexknot.ts [out.svg] [--param=value ...]
- * Example: npx tsx hexknot.ts logo.svg --colors=#ff9a00,#e5006d,#3a7bd5
- *          npx tsx hexknot.ts logo.svg --gradient=flow
- *          npx tsx hexknot.ts logo.svg --cornerRadius=8
- *          npx tsx hexknot.ts logo.svg --bandGap=40
- *          npx tsx hexknot.ts logo.svg --colors=#333333   (original flat mark)
  * Import:  import { hexKnotSvg } from "./hexknot";
+ * CLI:     cli.ts renders the mark to a file (npx tsx cli.ts logo.svg --param=value ...).
  */
 
 // ------------------------------------------------------------------ options
@@ -411,65 +405,4 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
     `</svg>`,
     ``,
   ].join("\n");
-}
-
-// ---------------------------------------------------------------------- cli
-
-function parseArgs(argv: string[]): { out: string; params: HexKnotParams } {
-  const params: HexKnotParams = {};
-  let out = "hexknot.svg";
-
-  for (const arg of argv) {
-    const match = /^--([A-Za-z]+)=(.+)$/.exec(arg);
-    if (!match) {
-      out = arg;
-      continue;
-    }
-    const [, key, raw] = match;
-    if (!(key in DEFAULTS)) {
-      console.warn(
-        `[hexknot] ignoring unknown option --${key} (known: ${Object.keys(DEFAULTS).join(", ")})`,
-      );
-      continue;
-    }
-    const template = DEFAULTS[key as keyof Resolved];
-    let value: unknown = raw;
-    if (Array.isArray(template)) {
-      value = raw
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    } else if (typeof template === "number") {
-      if (Number.isNaN(Number(raw))) {
-        console.warn(`[hexknot] ignoring --${key}: "${raw}" is not a number`);
-        continue;
-      }
-      value = Number(raw);
-    }
-    Object.assign(params, { [key]: value });
-  }
-  return { out, params };
-}
-
-// Node built-ins are imported lazily so the module also loads in the browser
-// (e.g. in the Vite playground), where they don't exist.
-const isMain = async (): Promise<boolean> => {
-  if (typeof process === "undefined" || process.argv?.[1] === undefined) return false;
-  try {
-    const [{ fileURLToPath }, { resolve }] = await Promise.all([
-      import("node:url"),
-      import("node:path"),
-    ]);
-    return fileURLToPath(import.meta.url) === resolve(process.argv[1]);
-  } catch {
-    return false;
-  }
-};
-
-if (await isMain()) {
-  const { writeFileSync } = await import("node:fs");
-  const { out, params } = parseArgs(process.argv.slice(2));
-  const svg = hexKnotSvg(params);
-  writeFileSync(out, svg);
-  console.log(`[hexknot] wrote ${out} (${svg.length} bytes)`);
 }
