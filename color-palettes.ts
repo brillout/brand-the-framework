@@ -23,9 +23,16 @@ export const PALETTE_GROUPS = [
   "Terracotta",
   // Six shades of one color — the most minimal of the bunch.
   "Single-hue ramps",
+  // Two colors alternating around the knot — no blends, like Bauhaus.
+  "Duotone",
   // Grays with a single color doing the talking.
   "Minimal accent",
 ] as const;
+
+/** Two colors repeated so they alternate around the knot instead of blending. */
+function duotone(name: string, a: string, b: string, background?: string): ColorPalette {
+  return { name, group: "Duotone", colors: [a, b, a, b, a, b], ...(background && { background }) };
+}
 
 export const COLOR_PALETTES: ColorPalette[] = [
   // ------------------------------------------------------------ editor themes
@@ -318,12 +325,22 @@ export const COLOR_PALETTES: ColorPalette[] = [
     colors: ["#5f0f8a", "#7813ae", "#9117d3", "#a62ce8", "#b551ec", "#c575f0"],
   },
 
+  // ------------------------------------------------------------------ duotone
+  duotone("Ink duotone", "#0f172a", "#e2e8f0"),
+  duotone("Blueprint", "#1e40af", "#dbeafe"),
+  duotone("Crimson & cream", "#dc2626", "#fef3c7"),
+  duotone("Midnight & gold", "#1e293b", "#f59e0b"),
+  duotone("Forest & mist", "#166534", "#d1fae5"),
+  duotone("Teal & sand", "#0f766e", "#e9c46a"),
+  duotone("Cobalt & coral", "#2563eb", "#fb7185"),
+  duotone("Plum & peach", "#7c3aed", "#fdba74"),
+  duotone("Charcoal & chartreuse", "#1f2937", "#a3e635"),
+  duotone("Clay & linen", "#e2725b", "#f4f1de"),
+  duotone("Espresso & foam", "#3e2723", "#ece0d1"),
+  duotone("Neon noir", "#22d3ee", "#f472b6", "#0b1120"),
+  duotone("Aurora", "#34d399", "#818cf8", "#0f172a"),
+
   // ---------------------------------------------------------- minimal accent
-  {
-    name: "Ink duotone",
-    group: "Minimal accent",
-    colors: ["#0f172a", "#e2e8f0"],
-  },
   {
     name: "Coral pop",
     group: "Minimal accent",
