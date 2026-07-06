@@ -329,6 +329,8 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
 
   // Geometry: the base band and its six rotated copies, rotated in code so the
   // whole file lives in one coordinate space (no transform/paint-server surprises).
+  // The hexagon's circumradius (center -> corner) is also half its total height.
+  const circumradius = p.size / (2 * Math.cos(rad(30)));
   const base = corners(bandEdges(p));
   const bands = ANGLES.map((angle) => base.map((pt) => rot(pt, angle)));
   const dOf = (poly: Vec[]): string =>
@@ -355,13 +357,13 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
   } else if (p.gradient === "linear") {
     // One straight gradient across the whole mark.
     const id = `${p.idPrefix}-g`;
-    const reach = p.size / (2 * Math.cos(rad(30))); // circumradius covers every direction
+    // The gradient axis spans the circumradius, covering the mark in every direction.
     const axis = unit(p.gradientAngle);
     defs.push(
       gradientEl(
         id,
-        [-reach * axis[0], -reach * axis[1]],
-        [reach * axis[0], reach * axis[1]],
+        [-circumradius * axis[0], -circumradius * axis[1]],
+        [circumradius * axis[0], circumradius * axis[1]],
         palette.map((c, i) => [i / (palette.length - 1), c]),
       ),
     );
@@ -400,7 +402,7 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
 
   // Everything is drawn around (0,0), so the viewBox is symmetric about the origin.
   const halfW = p.size / 2 + p.padding;
-  const halfH = p.size / (2 * Math.cos(rad(30))) + p.padding;
+  const halfH = circumradius + p.padding;
   const [x, y, w, h] = [-halfW, -halfH, 2 * halfW, 2 * halfH].map(fmt);
 
   return [
