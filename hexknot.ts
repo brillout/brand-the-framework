@@ -79,6 +79,8 @@ export interface HexKnotParams {
   idPrefix?: string;
   /** Decimal places used for coordinates in the output. */
   precision?: number;
+  /** Receives each warning about parameter combinations that break the design. Default: console.warn. */
+  onWarn?: (message: string) => void;
 }
 
 // The default parameters live in default.ts — they are the branding in use.
@@ -94,7 +96,8 @@ type Resolved = Required<HexKnotParams>;
  * is derived, so the resolved params are always mutually consistent.
  */
 function resolve(params: HexKnotParams): Resolved {
-  const p: Resolved = { ...DEFAULTS, ...params };
+  const warnToConsole = (message: string): void => console.warn(`[hexknot] warning: ${message}`);
+  const p: Resolved = { onWarn: warnToConsole, ...DEFAULTS, ...params };
   if (params.bandGap !== undefined) p.holeSize = p.size - 4 * p.lineWidth - 2 * p.bandGap;
   else p.bandGap = (p.size - 4 * p.lineWidth - p.holeSize) / 2;
   return p;
@@ -216,7 +219,7 @@ function roundCorner(poly: Vec[], i: number, radius: number): RoundedCorner {
   };
 }
 
-/** Loud warnings for parameter combinations that break the design. */
+/** Warnings for parameter combinations that break the design, reported through `p.onWarn`. */
 function validate(p: Resolved): void {
   const v = p.holeSize / 2;
   const problems: Array<[boolean, string]> = [
@@ -238,7 +241,7 @@ function validate(p: Resolved): void {
       `unknown gradient "${p.gradient}" — using "steps" (options: steps, flow, linear)`,
     ],
   ];
-  for (const [bad, msg] of problems) if (bad) console.warn(`[hexknot] warning: ${msg}`);
+  for (const [bad, msg] of problems) if (bad) p.onWarn(msg);
 }
 
 // -------------------------------------------------------------------- color
@@ -357,9 +360,7 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
     // its own start→tip axis, so the colors run once around the ring and wrap.
     const rgb = hexPalette();
     if (!rgb) {
-      console.warn(
-        '[hexknot] warning: gradient "flow" needs hex colors — using solid per-band colors instead',
-      );
+      p.onWarn('gradient "flow" needs hex colors — using solid per-band colors instead');
       body = solidBands((k) => palette[k % palette.length]);
     } else {
       const from = mid(base[7], base[0]); // middle of the start cut
@@ -381,8 +382,8 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
     // land evenly spaced; each band between two mains gets their solid blend.
     const rgb = hexPalette();
     if (!rgb) {
-      console.warn(
-        '[hexknot] warning: gradient "steps" blends colors, which needs hex — cycling the palette per band instead',
+      p.onWarn(
+        'gradient "steps" blends colors, which needs hex — cycling the palette per band instead',
       );
       body = solidBands((k) => palette[k % palette.length]);
     } else {

@@ -324,22 +324,8 @@ const favicon = $<HTMLLinkElement>('link[rel="icon"]');
 
 let currentSvg = "";
 
-/** hexknot.ts reports bad parameter combinations via console.warn; surface them in the UI. */
-function generate(params: HexKnotParams): { svg: string; warnings: string[] } {
-  const warnings: string[] = [];
-  const originalWarn = console.warn;
-  console.warn = (...args: unknown[]) => {
-    warnings.push(args.join(" "));
-    originalWarn(...args);
-  };
-  try {
-    return { svg: hexKnotSvg(params), warnings };
-  } finally {
-    console.warn = originalWarn;
-  }
-}
-
 function render(): void {
+  const warnings: string[] = [];
   const params: HexKnotParams = {
     size: state.size,
     lineWidth: state.lineWidth,
@@ -353,23 +339,21 @@ function render(): void {
     gradientAngle: state.gradientAngle,
     colors: state.colors,
     background: state.background,
+    onWarn: (message) => warnings.push(message),
   };
 
-  let warnings: string[];
   try {
-    ({ svg: currentSvg, warnings } = generate(params));
+    currentSvg = hexKnotSvg(params);
     preview.innerHTML = currentSvg;
     source.textContent = currentSvg;
     byteCount.textContent = `(${currentSvg.length} bytes)`;
     favicon.href = `data:image/svg+xml,${encodeURIComponent(currentSvg)}`;
   } catch (error) {
-    warnings = [error instanceof Error ? error.message : String(error)];
+    warnings.push(error instanceof Error ? error.message : String(error));
   }
 
   warningsBox.hidden = warnings.length === 0;
-  warningsBox.replaceChildren(
-    ...warnings.map((w) => el("p", {}, w.replace("[hexknot] warning: ", ""))),
-  );
+  warningsBox.replaceChildren(...warnings.map((w) => el("p", {}, w)));
 
   for (const spec of SLIDERS) {
     if (spec.onlyFor) {
