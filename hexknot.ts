@@ -23,12 +23,12 @@
  * Color
  * -----
  * `colors` takes any number of colors; `gradient` picks how they are applied:
- *   "steps"   (default) every band is ONE solid color. The palette's main
- *             colors are spread evenly around the ring and each band between
- *             two mains carries their solid blend — a stepped gradient. With
- *             3 mains on 6 bands: main, blend, main, blend, main, blend.
- *   "flow"    smooth sweep around the ring (per-band linear gradients),
- *             oriented so matching colors sit nearby where bands meet.
+ *   "steps"   every band is ONE solid color. The palette's main colors are
+ *             spread evenly around the ring and each band between two mains
+ *             carries their solid blend — a stepped gradient. With 3 mains
+ *             on 6 bands: main, blend, main, blend, main, blend.
+ *   "flow"    (default) smooth sweep around the ring (per-band linear
+ *             gradients), oriented so matching colors sit nearby where bands meet.
  *   "flow (old)"  the original flow, whose per-band blend ran the other way —
  *             colors clashed where one band tucks under the next.
  *   "linear"  one straight gradient across the whole mark; direction set by
@@ -73,7 +73,7 @@ export interface HexKnotParams {
   padding?: number;
   /** Color palette; 2+ entries color the bands, a single entry gives the flat mark. */
   colors?: string[];
-  /** How the palette is applied: "steps" (solid bands), "flow" (sweep; "flow (old)" is the legacy inverted sweep), "linear" (straight gradient). */
+  /** How the palette is applied: "flow" (sweep; "flow (old)" is the legacy inverted sweep), "steps" (solid bands), "linear" (straight gradient). */
   gradient?: Gradient;
   /** Direction of the "linear" gradient in degrees: 0 = left→right, 90 = top→bottom. */
   gradientAngle?: number;
@@ -403,7 +403,8 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
         return pathEl(dOf(band), `url(#${id})`);
       });
     } else {
-      // "steps" (default): every band is ONE solid color, sampled from the
+      // "steps" (also the fallback for unknown gradients): every band is ONE
+      // solid color, sampled from the
       // closed palette loop at the band's position around the ring. Main colors
       // land evenly spaced; each band between two mains gets their solid blend.
       body = solidBands((k) => paletteAt(rgb, k / BAND_COUNT));

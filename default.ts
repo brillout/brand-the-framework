@@ -7,15 +7,15 @@
 import { COLOR_PALETTES } from "./color-palettes.ts";
 import { bandGapFromHoleSize, type HexKnotParams } from "./hexknot.ts";
 
-const DEFAULT_PALETTE = COLOR_PALETTES.find((p) => p.name === "Terracotta minimal");
+const DEFAULT_PALETTE = COLOR_PALETTES.find((p) => p.name === "Everforest");
 if (!DEFAULT_PALETTE)
-  throw new Error('default palette "Terracotta minimal" is missing from color-palettes.ts');
+  throw new Error('default palette "Everforest" is missing from color-palettes.ts');
 
 const size = 478;
 const lineWidth = 61;
 const holeSize = 186;
 
-/** Defaults: six earthy colors as solid stepped bands; `--colors=#333333` restores the flat original. */
+/** Defaults: the Everforest palette flowing around the ring; `--colors=#333333` restores the flat original. */
 export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
   size,
   lineWidth,
@@ -27,7 +27,7 @@ export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
   background: null,
   precision: 1,
   colors: DEFAULT_PALETTE.colors,
-  gradient: "steps",
+  gradient: "flow",
   gradientAngle: 45,
   idPrefix: "hk",
 };
