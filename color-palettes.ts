@@ -2,7 +2,7 @@
  * Curated color palettes for the hexknot mark — pass a palette's `colors` (and
  * `background`, when the palette wants its dark backdrop) to hexknot.ts, e.g.:
  *
- *   npx tsx hexknot.ts logo.svg --colors=#eb6f92,#f6c177,#ebbcba,#31748f,#9ccfd8,#c4a7e7 --background=#191724
+ *   npx tsx cli.ts logo.svg --colors=#eb6f92,#f6c177,#ebbcba,#31748f,#9ccfd8,#c4a7e7 --background=#191724
  */
 
 export interface ColorPalette {
