@@ -19,6 +19,12 @@ function parseArgs(argv: string[]): { out: string; params: HexKnotParams } {
   for (const arg of argv) {
     const match = /^--([A-Za-z]+)=(.+)$/.exec(arg);
     if (!match) {
+      // Only a bare word can be the output file; a malformed option (--key,
+      // --key=) must not silently become a file named "--key".
+      if (arg.startsWith("--")) {
+        console.warn(`[hexknot] ignoring ${arg} — options take a value: --key=value`);
+        continue;
+      }
       out = arg;
       continue;
     }
