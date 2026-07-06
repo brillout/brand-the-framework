@@ -27,6 +27,8 @@ export const PALETTE_GROUPS = [
   "Grayscale",
   // Two colors alternating around the knot — no blends, like Bauhaus.
   "Duotone",
+  // Duotones with the hue drained out — two grays alternating.
+  "Grayscale duotone",
   // Grays with a single color doing the talking.
   "Minimal accent",
 ] as const;
@@ -34,6 +36,11 @@ export const PALETTE_GROUPS = [
 /** Two colors repeated so they alternate around the knot instead of blending. */
 function duotone(name: string, a: string, b: string, background?: string): ColorPalette {
   return { name, group: "Duotone", colors: [a, b, a, b, a, b], ...(background && { background }) };
+}
+
+/** A duotone of two grays — same alternation, no hue. */
+function grayscaleDuotone(name: string, a: string, b: string, background?: string): ColorPalette {
+  return { ...duotone(name, a, b, background), group: "Grayscale duotone" };
 }
 
 export const COLOR_PALETTES: ColorPalette[] = [
@@ -367,7 +374,6 @@ export const COLOR_PALETTES: ColorPalette[] = [
   },
 
   // ------------------------------------------------------------------ duotone
-  duotone("Black & white", "#111111", "#f5f5f5"),
   duotone("Ink duotone", "#0f172a", "#e2e8f0"),
   duotone("Blueprint", "#1e40af", "#dbeafe"),
   duotone("Crimson & cream", "#dc2626", "#fef3c7"),
@@ -393,6 +399,20 @@ export const COLOR_PALETTES: ColorPalette[] = [
   duotone("Aurora", "#34d399", "#818cf8", "#0f172a"),
   duotone("Ultraviolet", "#a78bfa", "#f0abfc", "#1e1b4b"),
   duotone("Ember night", "#f97316", "#facc15", "#1c1917"),
+
+  // -------------------------------------------------------- grayscale duotone
+  grayscaleDuotone("Piano", "#000000", "#ffffff"),
+  grayscaleDuotone("Black & white", "#111111", "#f5f5f5"),
+  grayscaleDuotone("Onyx & dove", "#171717", "#a3a3a3"),
+  grayscaleDuotone("Charcoal & silver", "#27272a", "#d4d4d8"),
+  grayscaleDuotone("Iron & fog", "#52525b", "#e4e4e7"),
+  // Low contrast on purpose — two mid grays whispering.
+  grayscaleDuotone("Ash & smoke", "#525252", "#a3a3a3"),
+  // Warm pair (stone) and cool pair (zinc), like the Grayscale ramps.
+  grayscaleDuotone("Stone & bone", "#57534e", "#e7e5e4"),
+  grayscaleDuotone("Zinc & frost", "#3f3f46", "#f4f4f5"),
+  grayscaleDuotone("Chalkboard", "#f5f5f5", "#737373", "#171717"),
+  grayscaleDuotone("Static", "#d4d4d4", "#404040", "#0a0a0a"),
 
   // ---------------------------------------------------------- minimal accent
   {
