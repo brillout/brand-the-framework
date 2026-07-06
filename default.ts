@@ -7,7 +7,9 @@
 import { COLOR_PALETTES } from "./color-palettes.ts";
 import { bandGapFromHoleSize, type HexKnotParams } from "./hexknot.ts";
 
-const DEFAULT_PALETTE = COLOR_PALETTES.find((p) => p.name === "Terracotta minimal")!;
+const DEFAULT_PALETTE = COLOR_PALETTES.find((p) => p.name === "Terracotta minimal");
+if (!DEFAULT_PALETTE)
+  throw new Error('default palette "Terracotta minimal" is missing from color-palettes.ts');
 
 const size = 478;
 const lineWidth = 61;
