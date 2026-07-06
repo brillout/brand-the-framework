@@ -30,8 +30,8 @@
  *   "flow"    smooth sweep around the ring (per-band linear gradients).
  *   "linear"  one straight gradient across the whole mark; direction set by
  *             gradientAngle (0 = left→right, 90 = top→bottom, 45 = diagonal).
- * One color (or the `color` param) gives the flat mark. "steps" and "flow"
- * blend colors themselves, so they need hex colors (#rgb / #rrggbb).
+ * One color gives the flat mark. "steps" and "flow" blend colors themselves,
+ * so they need hex colors (#rgb / #rrggbb).
  *
  * Corners
  * -------
@@ -68,9 +68,7 @@ export interface HexKnotParams {
   cornerRadius?: number;
   /** Margin between the artwork and the edge of the viewBox. */
   padding?: number;
-  /** Flat fill color, used when `colors` isn't given. */
-  color?: string;
-  /** Color palette; 2+ entries color the bands. Takes precedence over `color`. */
+  /** Color palette; 2+ entries color the bands, a single entry gives the flat mark. */
   colors?: string[];
   /** How the palette is applied: "steps" (solid bands), "flow" (sweep), "linear" (straight gradient). */
   gradient?: Gradient;
@@ -116,18 +114,17 @@ const warnToConsole = (message: string): void => console.warn(`[hexknot] warning
 
 /**
  * Fill in defaults and reconcile params that describe the same thing twice:
- * - `bandGap` <-> `holeSize`: an explicit `bandGap` derives the hole and wins
- *   over `holeSize`; otherwise `holeSize` (given or default) drives and
- *   `bandGap` is derived.
- * - `colors` wins over `color`; passing only `color` opts out of the default
- *   palette. The resolved `colors` is never empty, so it IS the palette.
+ * `bandGap` <-> `holeSize` are two views of one degree of freedom — an
+ * explicit `bandGap` derives the hole and wins over `holeSize`; otherwise
+ * `holeSize` (given or default) drives and `bandGap` is derived.
+ * An empty `colors` array means unset, so the default palette applies —
+ * the resolved `colors` is never empty, so it IS the palette.
  */
 function resolve(params: HexKnotParams): Resolved {
   const p: Resolved = { onWarn: warnToConsole, ...DEFAULTS, ...params };
   if (params.bandGap !== undefined) p.holeSize = holeSizeFromBandGap(p);
   else p.bandGap = bandGapFromHoleSize(p);
-  if (params.colors === undefined && params.color !== undefined) p.colors = [params.color];
-  if (p.colors.length === 0) p.colors = [p.color];
+  if (p.colors.length === 0) p.colors = DEFAULTS.colors;
   return p;
 }
 

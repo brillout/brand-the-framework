@@ -16,11 +16,10 @@ import {
 
 // ------------------------------------------------------------------- state
 
-// The playground drives every visual parameter; `color` (subsumed by
-// `colors`) and `idPrefix` stay at their defaults.
-type State = Omit<Required<HexKnotParams>, "color" | "idPrefix" | "onWarn">;
+// The playground drives every visual parameter; `idPrefix` stays at its default.
+type State = Omit<Required<HexKnotParams>, "idPrefix" | "onWarn">;
 
-const { color: _color, idPrefix: _idPrefix, ...stateDefaults } = DEFAULTS;
+const { idPrefix: _idPrefix, ...stateDefaults } = DEFAULTS;
 
 const NUMERIC_KEYS = [
   "size",
@@ -191,7 +190,7 @@ controls.append(el("label", { class: "control" }, el("span", {}, "gradient"), gr
 const colorList = el("div", { class: "color-list" });
 const addColorButton = el("button", { type: "button", class: "small" }, "+ Add color");
 addColorButton.addEventListener("click", () => {
-  state.colors.push(state.colors[state.colors.length - 1] ?? DEFAULTS.color);
+  state.colors.push(state.colors.at(-1) ?? "#333333");
   rebuildColorList();
   render();
 });
