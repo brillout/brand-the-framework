@@ -1,6 +1,6 @@
 /**
  * Interactive playground for hexknot.ts — tweak the mark's parameters with
- * live controls and grab the resulting SVG. Run with: pnpm run playground
+ * live controls and grab the resulting SVG. Run with: pnpm run dev
  */
 
 import { COLOR_PALETTES, PALETTE_GROUPS } from "../color-palettes.ts";
