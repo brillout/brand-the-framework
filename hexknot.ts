@@ -276,7 +276,8 @@ function parseHex(color: string): Rgb | null {
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
   if (!m) return null;
   const hex = m[1].length === 3 ? [...m[1]].map((ch) => ch + ch).join("") : m[1];
-  return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)) as unknown as Rgb;
+  const channel = (i: number): number => parseInt(hex.slice(i, i + 2), 16);
+  return [channel(0), channel(2), channel(4)];
 }
 
 const toHex = (rgb: readonly number[]): string =>
