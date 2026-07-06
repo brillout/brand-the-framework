@@ -30,8 +30,8 @@
  *   "flow"    smooth sweep around the ring (per-band linear gradients).
  *   "linear"  one straight gradient across the whole mark; direction set by
  *             gradientAngle (0 = left→right, 90 = top→bottom, 45 = diagonal).
- * One color (or the `color` param) gives the flat mark. "steps" and "flow"
- * blend colors themselves, so they need hex colors (#rgb / #rrggbb).
+ * One color gives the flat mark. "steps" and "flow" blend colors themselves,
+ * so they need hex colors (#rgb / #rrggbb).
  *
  * Corners
  * -------
@@ -68,9 +68,7 @@ export interface HexKnotParams {
   cornerRadius?: number;
   /** Margin between the artwork and the edge of the viewBox. */
   padding?: number;
-  /** Flat fill color, used when `colors` isn't given. */
-  color?: string;
-  /** Color palette; 2+ entries color the bands. Takes precedence over `color`. */
+  /** Color palette; 2+ entries color the bands, a single entry gives the flat mark. */
   colors?: string[];
   /** How the palette is applied: "steps" (solid bands), "flow" (sweep), "linear" (straight gradient). */
   gradient?: Gradient;
@@ -116,18 +114,17 @@ const warnToConsole = (message: string): void => console.warn(`[hexknot] warning
 
 /**
  * Fill in defaults and reconcile params that describe the same thing twice:
- * - `bandGap` <-> `holeSize`: an explicit `bandGap` derives the hole and wins
- *   over `holeSize`; otherwise `holeSize` (given or default) drives and
- *   `bandGap` is derived.
- * - `colors` wins over `color`; passing only `color` opts out of the default
- *   palette. The resolved `colors` is never empty, so it IS the palette.
+ * `bandGap` <-> `holeSize` are two views of one degree of freedom — an
+ * explicit `bandGap` derives the hole and wins over `holeSize`; otherwise
+ * `holeSize` (given or default) drives and `bandGap` is derived.
+ * An empty `colors` array means unset, so the default palette applies —
+ * the resolved `colors` is never empty, so it IS the palette.
  */
 function resolve(params: HexKnotParams): Resolved {
   const p: Resolved = { onWarn: warnToConsole, ...DEFAULTS, ...params };
   if (params.bandGap !== undefined) p.holeSize = holeSizeFromBandGap(p);
   else p.bandGap = bandGapFromHoleSize(p);
-  if (params.colors === undefined && params.color !== undefined) p.colors = [params.color];
-  if (p.colors.length === 0) p.colors = [p.color];
+  if (p.colors.length === 0) p.colors = DEFAULTS.colors;
   return p;
 }
 
@@ -245,27 +242,20 @@ function roundCorner(poly: Vec[], i: number, radius: number): RoundedCorner {
 
 /** Warnings for parameter combinations that break the design, reported through `p.onWarn`. */
 function validate(p: Resolved): void {
-  const v = p.holeSize / 2;
-  const problems: Array<[boolean, string]> = [
-    [
-      p.size <= 0 || p.lineWidth <= 0 || p.holeSize <= 0 || p.gap < 0,
-      "size, lineWidth and holeSize must be positive; gap must be >= 0",
-    ],
-    [p.cornerRadius < 0, "cornerRadius must be >= 0 — treating it as 0 (sharp corners)"],
-    [
-      v <= p.gap,
+  const warn = p.onWarn;
+  if (p.size <= 0 || p.lineWidth <= 0 || p.holeSize <= 0 || p.gap < 0)
+    warn("size, lineWidth and holeSize must be positive; gap must be >= 0");
+  if (p.cornerRadius < 0) warn("cornerRadius must be >= 0 — treating it as 0 (sharp corners)");
+  if (p.holeSize / 2 <= p.gap)
+    warn(
       "holeSize/2 must exceed gap, or the stroke tips collide in the center (a big bandGap shrinks the hole)",
-    ],
-    [
-      p.bandGap <= p.gap,
+    );
+  if (p.bandGap <= p.gap)
+    warn(
       "bandGap must exceed gap, or a band collides with the neighbor it runs alongside — raise bandGap/size or lower lineWidth/holeSize/gap",
-    ],
-    [
-      !GRADIENTS.includes(p.gradient),
-      `unknown gradient "${p.gradient}" — using "steps" (options: ${GRADIENTS.join(", ")})`,
-    ],
-  ];
-  for (const [bad, msg] of problems) if (bad) p.onWarn(msg);
+    );
+  if (!GRADIENTS.includes(p.gradient))
+    warn(`unknown gradient "${p.gradient}" — using "steps" (options: ${GRADIENTS.join(", ")})`);
 }
 
 // -------------------------------------------------------------------- color
@@ -303,18 +293,22 @@ function paletteAt(palette: readonly Rgb[], t: number): string {
 
 // --------------------------------------------------------------- svg output
 
+/** Coordinate formatter: `precision` decimals, trailing zeros stripped, no "-0". */
+const numberFormatter =
+  (precision: number) =>
+  (n: number): string => {
+    const s = n.toFixed(precision);
+    // Trailing zeros only exist after a decimal point; at precision 0 there is
+    // none, and stripping would corrupt integers ("120" -> "12").
+    const trimmed = precision ? s.replace(/0+$/, "").replace(/\.$/, "") : s;
+    return trimmed === "-0" ? "0" : trimmed;
+  };
+
 export function hexKnotSvg(params: HexKnotParams = {}): string {
   const p = resolve(params);
   validate(p);
   const palette = p.colors;
-
-  const fmt = (n: number): string => {
-    const s = n.toFixed(p.precision);
-    // Trailing zeros only exist after a decimal point; at precision 0 there is
-    // none, and stripping would corrupt integers ("120" -> "12").
-    const trimmed = p.precision ? s.replace(/0+$/, "").replace(/\.$/, "") : s;
-    return trimmed === "-0" ? "0" : trimmed;
-  };
+  const fmt = numberFormatter(p.precision);
 
   const pathEl = (d: string, fill: string): string => `  <path fill="${fill}" d="${d}"/>`;
 

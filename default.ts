@@ -24,7 +24,6 @@ export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
   bandGap: bandGapFromHoleSize({ size, lineWidth, holeSize }),
   cornerRadius: 10,
   padding: 50,
-  color: "#333333",
   background: null,
   precision: 1,
   colors: DEFAULT_PALETTE.colors,

@@ -16,29 +16,39 @@ import {
 
 // ------------------------------------------------------------------- state
 
-// The playground drives every visual parameter; `color` (subsumed by
-// `colors`) and `idPrefix` stay at their defaults.
-type State = Omit<Required<HexKnotParams>, "color" | "idPrefix" | "onWarn">;
+// The playground drives every visual parameter; `idPrefix` stays at its default.
+type State = Omit<Required<HexKnotParams>, "idPrefix" | "onWarn">;
 
-const { color: _color, idPrefix: _idPrefix, ...stateDefaults } = DEFAULTS;
+const { idPrefix: _idPrefix, ...stateDefaults } = DEFAULTS;
 
-const NUMERIC_KEYS = [
-  "size",
-  "lineWidth",
-  "gap",
-  "holeSize",
-  "bandGap",
-  "cornerRadius",
-  "padding",
-  "precision",
-  "gradientAngle",
-] as const;
-type NumericKey = (typeof NUMERIC_KEYS)[number];
+// The numeric parameters, each with the control range it gets in the sidebar.
+// `NumericKey` is derived from State, so TypeScript keeps this registry
+// exhaustive: a new numeric param won't compile until it gets a slider here.
+type NumericKey = { [K in keyof State]: State[K] extends number ? K : never }[keyof State];
+interface SliderSpec {
+  min: number;
+  max: number;
+  /** Sliders whose parameter only matters for one gradient mode get disabled otherwise. */
+  onlyFor?: Gradient;
+}
+const SLIDERS: Record<NumericKey, SliderSpec> = {
+  size: { min: 64, max: 1024 },
+  lineWidth: { min: 1, max: 160 },
+  gap: { min: 0, max: 80 },
+  holeSize: { min: 2, max: 512 },
+  bandGap: { min: 0, max: 128 },
+  cornerRadius: { min: 0, max: 64 },
+  padding: { min: 0, max: 256 },
+  gradientAngle: { min: 0, max: 360, onlyFor: "linear" },
+  precision: { min: 0, max: 6 },
+};
+const NUMERIC_KEYS = Object.keys(SLIDERS) as NumericKey[];
 
 const urlState = paramsFromUrl();
 const state: State = { ...stateDefaults, colors: [...stateDefaults.colors], ...urlState };
 // `bandGap` and `holeSize` describe the same degree of freedom; reconcile
-// whichever one the URL left out.
+// whichever one the URL left out. Links written by syncUrl only carry
+// holeSize, but a hand-written (or old) bandGap-only URL still works.
 if (urlState.bandGap !== undefined && urlState.holeSize === undefined) {
   state.holeSize = holeSizeFromBandGap(state);
 } else {
@@ -73,6 +83,9 @@ function paramsFromUrl(): Partial<State> {
 function syncUrl(): void {
   const query = new URLSearchParams();
   for (const key of NUMERIC_KEYS) {
+    // bandGap is derived from size/lineWidth/holeSize — writing those three
+    // reconstructs it on load, so the URL stays free of redundant state.
+    if (key === "bandGap") continue;
     if (state[key] !== stateDefaults[key]) query.set(key, String(state[key]));
   }
   if (state.gradient !== stateDefaults.gradient) query.set("gradient", state.gradient);
@@ -105,26 +118,6 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-interface SliderSpec {
-  key: NumericKey;
-  min: number;
-  max: number;
-  /** Sliders whose parameter only matters for one gradient mode get disabled otherwise. */
-  onlyFor?: Gradient;
-}
-
-const SLIDERS: SliderSpec[] = [
-  { key: "size", min: 64, max: 1024 },
-  { key: "lineWidth", min: 1, max: 160 },
-  { key: "gap", min: 0, max: 80 },
-  { key: "holeSize", min: 2, max: 512 },
-  { key: "bandGap", min: 0, max: 128 },
-  { key: "cornerRadius", min: 0, max: 64 },
-  { key: "padding", min: 0, max: 256 },
-  { key: "gradientAngle", min: 0, max: 360, onlyFor: "linear" },
-  { key: "precision", min: 0, max: 6 },
-];
-
 const sliderRows = new Map<NumericKey, HTMLElement>();
 
 function setSliderValue(key: NumericKey, value: number): void {
@@ -145,34 +138,35 @@ function syncLinkedParams(changed: NumericKey): void {
   }
 }
 
-for (const spec of SLIDERS) {
+for (const key of NUMERIC_KEYS) {
+  const spec = SLIDERS[key];
   const range = el("input", {
     type: "range",
     min: String(spec.min),
     max: String(spec.max),
     step: "1",
-    value: String(state[spec.key]),
+    value: String(state[key]),
   });
   const number = el("input", {
     type: "number",
     min: String(spec.min),
     max: String(spec.max),
     step: "1",
-    value: String(state[spec.key]),
+    value: String(state[key]),
   });
   const apply = (raw: string): void => {
     const value = Number(raw);
     if (Number.isNaN(value)) return;
-    state[spec.key] = value;
+    state[key] = value;
     range.value = raw;
     number.value = raw;
-    syncLinkedParams(spec.key);
+    syncLinkedParams(key);
     render();
   };
   range.addEventListener("input", () => apply(range.value));
   number.addEventListener("input", () => apply(number.value));
-  const row = el("label", { class: "control" }, el("span", {}, spec.key), range, number);
-  sliderRows.set(spec.key, row);
+  const row = el("label", { class: "control" }, el("span", {}, key), range, number);
+  sliderRows.set(key, row);
   controls.append(row);
 }
 
@@ -191,7 +185,7 @@ controls.append(el("label", { class: "control" }, el("span", {}, "gradient"), gr
 const colorList = el("div", { class: "color-list" });
 const addColorButton = el("button", { type: "button", class: "small" }, "+ Add color");
 addColorButton.addEventListener("click", () => {
-  state.colors.push(state.colors[state.colors.length - 1] ?? DEFAULTS.color);
+  state.colors.push(state.colors.at(-1) ?? "#333333");
   rebuildColorList();
   render();
 });
@@ -279,7 +273,7 @@ controls.append(el("div", { class: "palettes" }, ...paletteGroups));
 
 $("#reset").addEventListener("click", () => {
   Object.assign(state, stateDefaults, { colors: [...stateDefaults.colors] });
-  for (const spec of SLIDERS) setSliderValue(spec.key, state[spec.key]);
+  for (const key of NUMERIC_KEYS) setSliderValue(key, state[key]);
   gradientSelect.value = state.gradient;
   syncBackgroundControls();
   rebuildColorList();
@@ -325,10 +319,9 @@ function render(): void {
   warningsBox.hidden = warnings.length === 0;
   warningsBox.replaceChildren(...warnings.map((w) => el("p", {}, w)));
 
-  for (const spec of SLIDERS) {
-    if (spec.onlyFor) {
-      sliderRows.get(spec.key)!.classList.toggle("inactive", state.gradient !== spec.onlyFor);
-    }
+  for (const key of NUMERIC_KEYS) {
+    const { onlyFor } = SLIDERS[key];
+    if (onlyFor) sliderRows.get(key)!.classList.toggle("inactive", state.gradient !== onlyFor);
   }
 
   syncUrl();
