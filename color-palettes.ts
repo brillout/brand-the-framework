@@ -91,7 +91,6 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: "Everforest",
     group: "Editor themes",
     colors: ["#e67e80", "#e69875", "#dbbc7f", "#a7c080", "#7fbbb3", "#d699b6"],
-    background: "#2d353b",
   },
   {
     name: "One Dark",
