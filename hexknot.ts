@@ -242,27 +242,20 @@ function roundCorner(poly: Vec[], i: number, radius: number): RoundedCorner {
 
 /** Warnings for parameter combinations that break the design, reported through `p.onWarn`. */
 function validate(p: Resolved): void {
-  const v = p.holeSize / 2;
-  const problems: Array<[boolean, string]> = [
-    [
-      p.size <= 0 || p.lineWidth <= 0 || p.holeSize <= 0 || p.gap < 0,
-      "size, lineWidth and holeSize must be positive; gap must be >= 0",
-    ],
-    [p.cornerRadius < 0, "cornerRadius must be >= 0 — treating it as 0 (sharp corners)"],
-    [
-      v <= p.gap,
+  const warn = p.onWarn;
+  if (p.size <= 0 || p.lineWidth <= 0 || p.holeSize <= 0 || p.gap < 0)
+    warn("size, lineWidth and holeSize must be positive; gap must be >= 0");
+  if (p.cornerRadius < 0) warn("cornerRadius must be >= 0 — treating it as 0 (sharp corners)");
+  if (p.holeSize / 2 <= p.gap)
+    warn(
       "holeSize/2 must exceed gap, or the stroke tips collide in the center (a big bandGap shrinks the hole)",
-    ],
-    [
-      p.bandGap <= p.gap,
+    );
+  if (p.bandGap <= p.gap)
+    warn(
       "bandGap must exceed gap, or a band collides with the neighbor it runs alongside — raise bandGap/size or lower lineWidth/holeSize/gap",
-    ],
-    [
-      !GRADIENTS.includes(p.gradient),
-      `unknown gradient "${p.gradient}" — using "steps" (options: ${GRADIENTS.join(", ")})`,
-    ],
-  ];
-  for (const [bad, msg] of problems) if (bad) p.onWarn(msg);
+    );
+  if (!GRADIENTS.includes(p.gradient))
+    warn(`unknown gradient "${p.gradient}" — using "steps" (options: ${GRADIENTS.join(", ")})`);
 }
 
 // -------------------------------------------------------------------- color
