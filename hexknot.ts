@@ -30,10 +30,9 @@
  *   "flow"    smooth sweep around the ring (per-band linear gradients).
  *   "linear"  one straight gradient across the whole mark; direction set by
  *             gradientAngle (0 = left→right, 90 = top→bottom, 45 = diagonal).
- * One color (or --color=...) gives the flat mark. "steps" and "flow" blend
- * colors themselves, so they need hex colors (#rgb / #rrggbb).
+ * One color (or the `color` param) gives the flat mark. "steps" and "flow"
+ * blend colors themselves, so they need hex colors (#rgb / #rrggbb).
  *
-
  * Corners
  * -------
  * `cornerRadius` rounds every band corner — the SVG-path equivalent of CSS
@@ -41,16 +40,14 @@
  * bridged with a circular arc). The radius is automatically capped per corner
  * so roundings never overlap on short edges. 0 (default) keeps sharp corners.
  *
- * Run:     npx tsx hexknot.ts [out.svg] [--param=value ...]
- * Example: npx tsx hexknot.ts logo.svg --colors=#ff9a00,#e5006d,#3a7bd5
- *          npx tsx hexknot.ts logo.svg --gradient=flow
- *          npx tsx hexknot.ts logo.svg --cornerRadius=8
- *          npx tsx hexknot.ts logo.svg --bandGap=40
- *          npx tsx hexknot.ts logo.svg --colors=#333333   (original flat mark)
  * Import:  import { hexKnotSvg } from "./hexknot";
+ * CLI:     cli.ts renders the mark to a file (npx tsx cli.ts logo.svg --param=value ...).
  */
 
 // ------------------------------------------------------------------ options
+
+export const GRADIENTS = ["steps", "flow", "linear"] as const;
+export type Gradient = (typeof GRADIENTS)[number];
 
 export interface HexKnotParams {
   /** Overall width of the hexagon, flat side to flat side. (Total height = size / cos 30° ≈ 1.155 × size.) */
@@ -76,7 +73,7 @@ export interface HexKnotParams {
   /** Color palette; 2+ entries color the bands. Takes precedence over `color`. */
   colors?: string[];
   /** How the palette is applied: "steps" (solid bands), "flow" (sweep), "linear" (straight gradient). */
-  gradient?: "steps" | "flow" | "linear";
+  gradient?: Gradient;
   /** Direction of the "linear" gradient in degrees: 0 = left→right, 90 = top→bottom. */
   gradientAngle?: number;
   /** Background color; keep null for transparent. */
@@ -85,6 +82,8 @@ export interface HexKnotParams {
   idPrefix?: string;
   /** Decimal places used for coordinates in the output. */
   precision?: number;
+  /** Receives each warning about parameter combinations that break the design. Default: console.warn. */
+  onWarn?: (message: string) => void;
 }
 
 // The default parameters live in default.ts — they are the branding in use.
@@ -94,15 +93,41 @@ export { DEFAULTS };
 type Resolved = Required<HexKnotParams>;
 
 /**
- * Fill in defaults and reconcile `bandGap` <-> `holeSize`, two views of one
- * degree of freedom: an explicit `bandGap` derives the hole and wins over
- * `holeSize`; otherwise `holeSize` (given or default) drives and `bandGap`
- * is derived, so the resolved params are always mutually consistent.
+ * `bandGap` and `holeSize` are two views of one degree of freedom
+ * (holeSize = size - 4·lineWidth - 2·bandGap); each helper derives one
+ * view from the other.
+ */
+export function holeSizeFromBandGap(p: {
+  size: number;
+  lineWidth: number;
+  bandGap: number;
+}): number {
+  return p.size - 4 * p.lineWidth - 2 * p.bandGap;
+}
+export function bandGapFromHoleSize(p: {
+  size: number;
+  lineWidth: number;
+  holeSize: number;
+}): number {
+  return (p.size - 4 * p.lineWidth - p.holeSize) / 2;
+}
+
+const warnToConsole = (message: string): void => console.warn(`[hexknot] warning: ${message}`);
+
+/**
+ * Fill in defaults and reconcile params that describe the same thing twice:
+ * - `bandGap` <-> `holeSize`: an explicit `bandGap` derives the hole and wins
+ *   over `holeSize`; otherwise `holeSize` (given or default) drives and
+ *   `bandGap` is derived.
+ * - `colors` wins over `color`; passing only `color` opts out of the default
+ *   palette. The resolved `colors` is never empty, so it IS the palette.
  */
 function resolve(params: HexKnotParams): Resolved {
-  const p: Resolved = { ...DEFAULTS, ...params };
-  if (params.bandGap !== undefined) p.holeSize = p.size - 4 * p.lineWidth - 2 * p.bandGap;
-  else p.bandGap = (p.size - 4 * p.lineWidth - p.holeSize) / 2;
+  const p: Resolved = { onWarn: warnToConsole, ...DEFAULTS, ...params };
+  if (params.bandGap !== undefined) p.holeSize = holeSizeFromBandGap(p);
+  else p.bandGap = bandGapFromHoleSize(p);
+  if (params.colors === undefined && params.color !== undefined) p.colors = [params.color];
+  if (p.colors.length === 0) p.colors = [p.color];
   return p;
 }
 
@@ -170,10 +195,6 @@ function bandEdges(p: Resolved): Line[] {
 const corners = (edges: Line[]): Vec[] =>
   edges.map((edge, i) => intersect(edges[(i + edges.length - 1) % edges.length], edge));
 
-/** Corners of the base band for given params (P0..P7); handy for testing and custom rendering. */
-export const bandCorners = (params: HexKnotParams = {}): Vec[] =>
-  corners(bandEdges(resolve(params)));
-
 /**
  * Rounded corner i of a polygon: the two adjacent edges are trimmed back and
  * bridged by a circular arc. The trim distance is r / tan(θ/2) for interior
@@ -222,7 +243,7 @@ function roundCorner(poly: Vec[], i: number, radius: number): RoundedCorner {
   };
 }
 
-/** Loud warnings for parameter combinations that break the design. */
+/** Warnings for parameter combinations that break the design, reported through `p.onWarn`. */
 function validate(p: Resolved): void {
   const v = p.holeSize / 2;
   const problems: Array<[boolean, string]> = [
@@ -240,11 +261,11 @@ function validate(p: Resolved): void {
       "bandGap must exceed gap, or a band collides with the neighbor it runs alongside — raise bandGap/size or lower lineWidth/holeSize/gap",
     ],
     [
-      !["steps", "flow", "linear"].includes(p.gradient),
-      `unknown gradient "${p.gradient}" — using "steps" (options: steps, flow, linear)`,
+      !GRADIENTS.includes(p.gradient),
+      `unknown gradient "${p.gradient}" — using "steps" (options: ${GRADIENTS.join(", ")})`,
     ],
   ];
-  for (const [bad, msg] of problems) if (bad) console.warn(`[hexknot] warning: ${msg}`);
+  for (const [bad, msg] of problems) if (bad) p.onWarn(msg);
 }
 
 // -------------------------------------------------------------------- color
@@ -252,11 +273,12 @@ function validate(p: Resolved): void {
 type Rgb = readonly [number, number, number];
 
 /** "#rgb" or "#rrggbb" → [r, g, b]; null for anything else. */
-export function parseHex(color: string): Rgb | null {
+function parseHex(color: string): Rgb | null {
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
   if (!m) return null;
   const hex = m[1].length === 3 ? [...m[1]].map((ch) => ch + ch).join("") : m[1];
-  return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)) as unknown as Rgb;
+  const channel = (i: number): number => parseInt(hex.slice(i, i + 2), 16);
+  return [channel(0), channel(2), channel(4)];
 }
 
 const toHex = (rgb: readonly number[]): string =>
@@ -270,7 +292,7 @@ const toHex = (rgb: readonly number[]): string =>
     .join("");
 
 /** Sample a palette treated as a closed loop, t ∈ [0, 1] (t = 1 wraps to t = 0). */
-export function paletteAt(palette: readonly Rgb[], t: number): string {
+function paletteAt(palette: readonly Rgb[], t: number): string {
   const x = (((t % 1) + 1) % 1) * palette.length;
   const i = Math.floor(x) % palette.length;
   const f = x - Math.floor(x);
@@ -284,13 +306,12 @@ export function paletteAt(palette: readonly Rgb[], t: number): string {
 export function hexKnotSvg(params: HexKnotParams = {}): string {
   const p = resolve(params);
   validate(p);
-
-  // `colors` wins over `color`; passing only `color` opts out of the default palette.
-  const requested = params.colors ?? (params.color !== undefined ? [params.color] : p.colors);
-  const palette = requested.length > 0 ? requested : [p.color];
+  const palette = p.colors;
 
   const fmt = (n: number): string => {
     const s = n.toFixed(p.precision);
+    // Trailing zeros only exist after a decimal point; at precision 0 there is
+    // none, and stripping would corrupt integers ("120" -> "12").
     const trimmed = p.precision ? s.replace(/0+$/, "").replace(/\.$/, "") : s;
     return trimmed === "-0" ? "0" : trimmed;
   };
@@ -312,27 +333,20 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
 
   // Geometry: the base band and its six rotated copies, rotated in code so the
   // whole file lives in one coordinate space (no transform/paint-server surprises).
+  // The hexagon's circumradius (center -> corner) is also half its total height.
+  const circumradius = p.size / (2 * Math.cos(rad(30)));
   const base = corners(bandEdges(p));
   const bands = ANGLES.map((angle) => base.map((pt) => rot(pt, angle)));
   const dOf = (poly: Vec[]): string =>
     poly
       .map((_, i) => {
-        const { from, to, r, sweep } =
-          p.cornerRadius > 0
-            ? roundCorner(poly, i, p.cornerRadius)
-            : { from: poly[i], to: poly[i], r: 0, sweep: 1 };
+        const { from, to, r, sweep } = roundCorner(poly, i, p.cornerRadius);
         const enter = `${i === 0 ? "M" : "L"}${fmt(from[0])} ${fmt(from[1])}`;
         return r > 0
           ? `${enter} A${fmt(r)} ${fmt(r)} 0 0 ${sweep} ${fmt(to[0])} ${fmt(to[1])}`
           : enter;
       })
       .join(" ") + " Z";
-
-  /** Blending needs hex colors; returns null when the palette can't be blended. */
-  const hexPalette = (): Rgb[] | null => {
-    const rgb = palette.map(parseHex);
-    return rgb.every((c): c is Rgb => c !== null) ? rgb : null;
-  };
 
   /** One path per band, each with its own solid fill. */
   const solidBands = (colorOf: (k: number) => string): string[] =>
@@ -347,27 +361,29 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
   } else if (p.gradient === "linear") {
     // One straight gradient across the whole mark.
     const id = `${p.idPrefix}-g`;
-    const reach = p.size / (2 * Math.cos(rad(30))); // circumradius covers every direction
+    // The gradient axis spans the circumradius, covering the mark in every direction.
     const axis = unit(p.gradientAngle);
     defs.push(
       gradientEl(
         id,
-        [-reach * axis[0], -reach * axis[1]],
-        [reach * axis[0], reach * axis[1]],
+        [-circumradius * axis[0], -circumradius * axis[1]],
+        [circumradius * axis[0], circumradius * axis[1]],
         palette.map((c, i) => [i / (palette.length - 1), c]),
       ),
     );
     body = [pathEl(bands.map(dOf).join(" "), `url(#${id})`)];
-  } else if (p.gradient === "flow") {
-    // Smooth sweep: band k blends from palette(k/6) to palette((k+1)/6) along
-    // its own start→tip axis, so the colors run once around the ring and wrap.
-    const rgb = hexPalette();
+  } else {
+    // "flow" and "steps" blend colors themselves, which needs a hex palette.
+    const parsed = palette.map(parseHex);
+    const rgb = parsed.every((c): c is Rgb => c !== null) ? parsed : null;
     if (!rgb) {
-      console.warn(
-        '[hexknot] warning: gradient "flow" needs hex colors — using solid per-band colors instead',
+      p.onWarn(
+        `gradient "${p.gradient}" blends colors, which needs hex — cycling the palette per band instead`,
       );
       body = solidBands((k) => palette[k % palette.length]);
-    } else {
+    } else if (p.gradient === "flow") {
+      // Smooth sweep: band k blends from palette(k/6) to palette((k+1)/6) along
+      // its own start→tip axis, so the colors run once around the ring and wrap.
       const from = mid(base[7], base[0]); // middle of the start cut
       const to = mid(base[3], base[4]); //   middle of the tip cut
       body = bands.map((band, k) => {
@@ -380,25 +396,17 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
         );
         return pathEl(dOf(band), `url(#${id})`);
       });
-    }
-  } else {
-    // "steps" (default): every band is ONE solid color, sampled from the
-    // closed palette loop at the band's position around the ring. Main colors
-    // land evenly spaced; each band between two mains gets their solid blend.
-    const rgb = hexPalette();
-    if (!rgb) {
-      console.warn(
-        '[hexknot] warning: gradient "steps" blends colors, which needs hex — cycling the palette per band instead',
-      );
-      body = solidBands((k) => palette[k % palette.length]);
     } else {
+      // "steps" (default): every band is ONE solid color, sampled from the
+      // closed palette loop at the band's position around the ring. Main colors
+      // land evenly spaced; each band between two mains gets their solid blend.
       body = solidBands((k) => paletteAt(rgb, k / BAND_COUNT));
     }
   }
 
   // Everything is drawn around (0,0), so the viewBox is symmetric about the origin.
   const halfW = p.size / 2 + p.padding;
-  const halfH = p.size / (2 * Math.cos(rad(30))) + p.padding;
+  const halfH = circumradius + p.padding;
   const [x, y, w, h] = [-halfW, -halfH, 2 * halfW, 2 * halfH].map(fmt);
 
   return [
@@ -411,65 +419,4 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
     `</svg>`,
     ``,
   ].join("\n");
-}
-
-// ---------------------------------------------------------------------- cli
-
-function parseArgs(argv: string[]): { out: string; params: HexKnotParams } {
-  const params: HexKnotParams = {};
-  let out = "hexknot.svg";
-
-  for (const arg of argv) {
-    const match = /^--([A-Za-z]+)=(.+)$/.exec(arg);
-    if (!match) {
-      out = arg;
-      continue;
-    }
-    const [, key, raw] = match;
-    if (!(key in DEFAULTS)) {
-      console.warn(
-        `[hexknot] ignoring unknown option --${key} (known: ${Object.keys(DEFAULTS).join(", ")})`,
-      );
-      continue;
-    }
-    const template = DEFAULTS[key as keyof Resolved];
-    let value: unknown = raw;
-    if (Array.isArray(template)) {
-      value = raw
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    } else if (typeof template === "number") {
-      if (Number.isNaN(Number(raw))) {
-        console.warn(`[hexknot] ignoring --${key}: "${raw}" is not a number`);
-        continue;
-      }
-      value = Number(raw);
-    }
-    Object.assign(params, { [key]: value });
-  }
-  return { out, params };
-}
-
-// Node built-ins are imported lazily so the module also loads in the browser
-// (e.g. in the Vite playground), where they don't exist.
-const isMain = async (): Promise<boolean> => {
-  if (typeof process === "undefined" || process.argv?.[1] === undefined) return false;
-  try {
-    const [{ fileURLToPath }, { resolve }] = await Promise.all([
-      import("node:url"),
-      import("node:path"),
-    ]);
-    return fileURLToPath(import.meta.url) === resolve(process.argv[1]);
-  } catch {
-    return false;
-  }
-};
-
-if (await isMain()) {
-  const { writeFileSync } = await import("node:fs");
-  const { out, params } = parseArgs(process.argv.slice(2));
-  const svg = hexKnotSvg(params);
-  writeFileSync(out, svg);
-  console.log(`[hexknot] wrote ${out} (${svg.length} bytes)`);
 }

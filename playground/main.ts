@@ -1,47 +1,27 @@
 /**
  * Interactive playground for hexknot.ts — tweak the mark's parameters with
- * live controls and grab the resulting SVG. Run with: pnpm run playground
+ * live controls and grab the resulting SVG. Run with: pnpm run dev
  */
 
 import { COLOR_PALETTES, PALETTE_GROUPS } from "../color-palettes.ts";
-import { DEFAULTS, hexKnotSvg, type HexKnotParams } from "../hexknot.ts";
+import {
+  bandGapFromHoleSize,
+  DEFAULTS,
+  type Gradient,
+  GRADIENTS,
+  hexKnotSvg,
+  type HexKnotParams,
+  holeSizeFromBandGap,
+} from "../hexknot.ts";
 
 // ------------------------------------------------------------------- state
 
-type Gradient = Required<HexKnotParams>["gradient"];
+// The playground drives every visual parameter; `color` (subsumed by
+// `colors`) and `idPrefix` stay at their defaults.
+type State = Omit<Required<HexKnotParams>, "color" | "idPrefix" | "onWarn">;
 
-interface State {
-  size: number;
-  lineWidth: number;
-  gap: number;
-  holeSize: number;
-  bandGap: number;
-  cornerRadius: number;
-  padding: number;
-  precision: number;
-  gradient: Gradient;
-  gradientAngle: number;
-  colors: string[];
-  /** null = transparent */
-  background: string | null;
-}
+const { color: _color, idPrefix: _idPrefix, ...stateDefaults } = DEFAULTS;
 
-const stateDefaults: State = {
-  size: DEFAULTS.size,
-  lineWidth: DEFAULTS.lineWidth,
-  gap: DEFAULTS.gap,
-  holeSize: DEFAULTS.holeSize,
-  bandGap: DEFAULTS.bandGap,
-  cornerRadius: DEFAULTS.cornerRadius,
-  padding: DEFAULTS.padding,
-  precision: DEFAULTS.precision,
-  gradient: DEFAULTS.gradient,
-  gradientAngle: DEFAULTS.gradientAngle,
-  colors: [...DEFAULTS.colors],
-  background: DEFAULTS.background,
-};
-
-const GRADIENTS: Gradient[] = ["steps", "flow", "linear"];
 const NUMERIC_KEYS = [
   "size",
   "lineWidth",
@@ -57,12 +37,12 @@ type NumericKey = (typeof NUMERIC_KEYS)[number];
 
 const urlState = paramsFromUrl();
 const state: State = { ...stateDefaults, colors: [...stateDefaults.colors], ...urlState };
-// `bandGap` and `holeSize` describe the same degree of freedom (holeSize =
-// size - 4·lineWidth - 2·bandGap); reconcile whichever one the URL left out.
+// `bandGap` and `holeSize` describe the same degree of freedom; reconcile
+// whichever one the URL left out.
 if (urlState.bandGap !== undefined && urlState.holeSize === undefined) {
-  state.holeSize = state.size - 4 * state.lineWidth - 2 * state.bandGap;
+  state.holeSize = holeSizeFromBandGap(state);
 } else {
-  state.bandGap = (state.size - 4 * state.lineWidth - state.holeSize) / 2;
+  state.bandGap = bandGapFromHoleSize(state);
 }
 
 // ------------------------------------------------------------- url <-> state
@@ -72,17 +52,20 @@ function paramsFromUrl(): Partial<State> {
   const query = new URLSearchParams(location.search);
   const partial: Partial<State> = {};
   for (const key of NUMERIC_KEYS) {
+    // `raw` must be non-empty: Number("") is 0, not NaN.
     const raw = query.get(key);
-    if (raw !== null && !Number.isNaN(Number(raw))) partial[key] = Number(raw);
+    if (raw && !Number.isNaN(Number(raw))) partial[key] = Number(raw);
   }
   const gradient = query.get("gradient");
   if (gradient && GRADIENTS.includes(gradient as Gradient)) partial.gradient = gradient as Gradient;
-  const colors = query.get("colors");
-  if (colors)
-    partial.colors = colors
-      .split(",")
-      .map((c) => c.trim())
-      .filter(Boolean);
+  // Like the numeric params, a colors list that is effectively empty
+  // (?colors=,,) is ignored.
+  const colors = query
+    .get("colors")
+    ?.split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+  if (colors?.length) partial.colors = colors;
   if (query.has("background")) partial.background = query.get("background") || null;
   return partial;
 }
@@ -150,15 +133,15 @@ function setSliderValue(key: NumericKey, value: number): void {
 }
 
 /**
- * `bandGap` and `holeSize` are two views of one degree of freedom (holeSize =
- * size - 4·lineWidth - 2·bandGap): editing either recomputes the other, and
- * size/lineWidth edits keep the hole and let `bandGap` follow.
+ * `bandGap` and `holeSize` are two views of one degree of freedom: editing
+ * either recomputes the other, and size/lineWidth edits keep the hole and let
+ * `bandGap` follow.
  */
 function syncLinkedParams(changed: NumericKey): void {
   if (changed === "bandGap") {
-    setSliderValue("holeSize", state.size - 4 * state.lineWidth - 2 * state.bandGap);
+    setSliderValue("holeSize", holeSizeFromBandGap(state));
   } else if (changed === "holeSize" || changed === "size" || changed === "lineWidth") {
-    setSliderValue("bandGap", (state.size - 4 * state.lineWidth - state.holeSize) / 2);
+    setSliderValue("bandGap", bandGapFromHoleSize(state));
   }
 }
 
@@ -240,8 +223,15 @@ controls.append(
 
 // Background: transparent by default, optional solid color.
 const backgroundToggle = el("input", { type: "checkbox" });
-backgroundToggle.checked = state.background !== null;
-const backgroundPicker = el("input", { type: "color", value: state.background ?? "#ffffff" });
+const backgroundPicker = el("input", { type: "color", value: "#ffffff" });
+
+/** Point the toggle & picker at the current state.background. */
+function syncBackgroundControls(): void {
+  backgroundToggle.checked = state.background !== null;
+  if (state.background) backgroundPicker.value = state.background;
+}
+syncBackgroundControls();
+
 backgroundToggle.addEventListener("input", () => {
   state.background = backgroundToggle.checked ? backgroundPicker.value : null;
   render();
@@ -275,8 +265,7 @@ const paletteGroups = PALETTE_GROUPS.map((group) =>
       button.addEventListener("click", () => {
         state.colors = [...palette.colors];
         state.background = palette.background ?? null;
-        backgroundToggle.checked = state.background !== null;
-        if (state.background) backgroundPicker.value = state.background;
+        syncBackgroundControls();
         rebuildColorList();
         render();
       });
@@ -290,12 +279,9 @@ controls.append(el("div", { class: "palettes" }, ...paletteGroups));
 
 $("#reset").addEventListener("click", () => {
   Object.assign(state, stateDefaults, { colors: [...stateDefaults.colors] });
-  for (const spec of SLIDERS) {
-    const row = sliderRows.get(spec.key)!;
-    for (const input of row.querySelectorAll("input")) input.value = String(state[spec.key]);
-  }
+  for (const spec of SLIDERS) setSliderValue(spec.key, state[spec.key]);
   gradientSelect.value = state.gradient;
-  backgroundToggle.checked = state.background !== null;
+  syncBackgroundControls();
   rebuildColorList();
   render();
 });
@@ -324,52 +310,20 @@ const favicon = $<HTMLLinkElement>('link[rel="icon"]');
 
 let currentSvg = "";
 
-/** hexknot.ts reports bad parameter combinations via console.warn; surface them in the UI. */
-function generate(params: HexKnotParams): { svg: string; warnings: string[] } {
-  const warnings: string[] = [];
-  const originalWarn = console.warn;
-  console.warn = (...args: unknown[]) => {
-    warnings.push(args.join(" "));
-    originalWarn(...args);
-  };
-  try {
-    return { svg: hexKnotSvg(params), warnings };
-  } finally {
-    console.warn = originalWarn;
-  }
-}
-
 function render(): void {
-  const params: HexKnotParams = {
-    size: state.size,
-    lineWidth: state.lineWidth,
-    gap: state.gap,
-    holeSize: state.holeSize,
-    bandGap: state.bandGap,
-    cornerRadius: state.cornerRadius,
-    padding: state.padding,
-    precision: state.precision,
-    gradient: state.gradient,
-    gradientAngle: state.gradientAngle,
-    colors: state.colors,
-    background: state.background,
-  };
-
-  let warnings: string[];
+  const warnings: string[] = [];
   try {
-    ({ svg: currentSvg, warnings } = generate(params));
+    currentSvg = hexKnotSvg({ ...state, onWarn: (message) => warnings.push(message) });
     preview.innerHTML = currentSvg;
     source.textContent = currentSvg;
     byteCount.textContent = `(${currentSvg.length} bytes)`;
     favicon.href = `data:image/svg+xml,${encodeURIComponent(currentSvg)}`;
   } catch (error) {
-    warnings = [error instanceof Error ? error.message : String(error)];
+    warnings.push(error instanceof Error ? error.message : String(error));
   }
 
   warningsBox.hidden = warnings.length === 0;
-  warningsBox.replaceChildren(
-    ...warnings.map((w) => el("p", {}, w.replace("[hexknot] warning: ", ""))),
-  );
+  warningsBox.replaceChildren(...warnings.map((w) => el("p", {}, w)));
 
   for (const spec of SLIDERS) {
     if (spec.onlyFor) {

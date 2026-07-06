@@ -5,17 +5,23 @@
  */
 
 import { COLOR_PALETTES } from "./color-palettes.ts";
-import type { HexKnotParams } from "./hexknot.ts";
+import { bandGapFromHoleSize, type HexKnotParams } from "./hexknot.ts";
 
-const DEFAULT_PALETTE = COLOR_PALETTES.find((p) => p.name === "Terracotta minimal")!;
+const DEFAULT_PALETTE = COLOR_PALETTES.find((p) => p.name === "Terracotta minimal");
+if (!DEFAULT_PALETTE)
+  throw new Error('default palette "Terracotta minimal" is missing from color-palettes.ts');
+
+const size = 478;
+const lineWidth = 61;
+const holeSize = 186;
 
 /** Defaults: six earthy colors as solid stepped bands; `--colors=#333333` restores the flat original. */
-export const DEFAULTS: Required<HexKnotParams> = {
-  size: 478,
-  lineWidth: 61,
+export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
+  size,
+  lineWidth,
   gap: 6,
-  holeSize: 186,
-  bandGap: 24, // = (size - 4 * lineWidth - holeSize) / 2 — kept in sync with the values above
+  holeSize,
+  bandGap: bandGapFromHoleSize({ size, lineWidth, holeSize }),
   cornerRadius: 10,
   padding: 50,
   color: "#333333",
