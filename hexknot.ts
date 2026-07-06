@@ -315,10 +315,7 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
   const dOf = (poly: Vec[]): string =>
     poly
       .map((_, i) => {
-        const { from, to, r, sweep } =
-          p.cornerRadius > 0
-            ? roundCorner(poly, i, p.cornerRadius)
-            : { from: poly[i], to: poly[i], r: 0, sweep: 1 };
+        const { from, to, r, sweep } = roundCorner(poly, i, p.cornerRadius);
         const enter = `${i === 0 ? "M" : "L"}${fmt(from[0])} ${fmt(from[1])}`;
         return r > 0
           ? `${enter} A${fmt(r)} ${fmt(r)} 0 0 ${sweep} ${fmt(to[0])} ${fmt(to[1])}`
