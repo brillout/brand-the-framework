@@ -31,6 +31,6 @@ export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
   gradient: "flow",
   gradientAngle: 45,
   animated: false,
-  animationDuration: 12,
+  animationDuration: 6,
   idPrefix: "hk",
 };
