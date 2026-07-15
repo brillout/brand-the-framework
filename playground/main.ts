@@ -41,6 +41,7 @@ const SLIDERS: Record<NumericKey, SliderSpec> = {
   padding: { min: 0, max: 256 },
   rotation: { min: 0, max: 360 },
   gradientAngle: { min: 0, max: 360, onlyFor: "linear" },
+  animationDuration: { min: 2, max: 60 },
   precision: { min: 0, max: 6 },
 };
 const NUMERIC_KEYS = Object.keys(SLIDERS) as NumericKey[];
@@ -78,6 +79,7 @@ function paramsFromUrl(): Partial<State> {
     .filter(Boolean);
   if (colors?.length) partial.colors = colors;
   if (query.has("background")) partial.background = query.get("background") || null;
+  if (query.has("animated")) partial.animated = query.get("animated") !== "false";
   return partial;
 }
 
@@ -94,6 +96,7 @@ function syncUrl(): void {
     query.set("colors", state.colors.join(","));
   if (state.background !== stateDefaults.background)
     query.set("background", state.background ?? "");
+  if (state.animated !== stateDefaults.animated) query.set("animated", String(state.animated));
   const search = query.toString();
   history.replaceState(null, "", search ? `?${search}` : location.pathname);
 }
@@ -181,6 +184,15 @@ gradientSelect.addEventListener("input", () => {
   render();
 });
 controls.append(el("label", { class: "control" }, el("span", {}, "gradient"), gradientSelect));
+
+// Animation: colors continuously drift around the ring, for a fluid look.
+const animatedToggle = el("input", { type: "checkbox" });
+animatedToggle.checked = state.animated;
+animatedToggle.addEventListener("input", () => {
+  state.animated = animatedToggle.checked;
+  render();
+});
+controls.append(el("label", { class: "control" }, el("span", {}, "animated"), animatedToggle));
 
 // Color palette: one picker per entry; one entry means the flat mark.
 const colorList = el("div", { class: "color-list" });
@@ -276,6 +288,7 @@ $("#reset").addEventListener("click", () => {
   Object.assign(state, stateDefaults, { colors: [...stateDefaults.colors] });
   for (const key of NUMERIC_KEYS) setSliderValue(key, state[key]);
   gradientSelect.value = state.gradient;
+  animatedToggle.checked = state.animated;
   syncBackgroundControls();
   rebuildColorList();
   render();
@@ -322,7 +335,9 @@ function render(): void {
 
   for (const key of NUMERIC_KEYS) {
     const { onlyFor } = SLIDERS[key];
-    if (onlyFor) sliderRows.get(key)!.classList.toggle("inactive", state.gradient !== onlyFor);
+    const inactive =
+      (onlyFor && state.gradient !== onlyFor) || (key === "animationDuration" && !state.animated);
+    sliderRows.get(key)!.classList.toggle("inactive", inactive);
   }
 
   syncUrl();

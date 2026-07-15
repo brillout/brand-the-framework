@@ -4,6 +4,7 @@
  * Run:     npx tsx cli.ts [out.svg] [--param=value ...]
  * Example: npx tsx cli.ts logo.svg --colors=#ff9a00,#e5006d,#3a7bd5
  *          npx tsx cli.ts logo.svg --gradient=flow
+ *          npx tsx cli.ts logo.svg --animated=true --animationDuration=8
  *          npx tsx cli.ts logo.svg --cornerRadius=8
  *          npx tsx cli.ts logo.svg --bandGap=40
  *          npx tsx cli.ts logo.svg --colors=#333333   (original flat mark)
@@ -48,6 +49,8 @@ function parseArgs(argv: string[]): { out: string; params: HexKnotParams } {
         continue;
       }
       value = Number(raw);
+    } else if (typeof template === "boolean") {
+      value = raw !== "false";
     }
     Object.assign(params, { [key]: value });
   }
