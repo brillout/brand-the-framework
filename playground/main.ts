@@ -42,6 +42,9 @@ const SLIDERS: Record<NumericKey, SliderSpec> = {
   rotation: { min: 0, max: 360 },
   gradientAngle: { min: 0, max: 360, onlyFor: "linear" },
   animationDuration: { min: 2, max: 60 },
+  breathingGap: { min: 0, max: 128 },
+  breathingHold: { min: 1, max: 10 },
+  breathingMorph: { min: 1, max: 10 },
   precision: { min: 0, max: 6 },
 };
 const NUMERIC_KEYS = Object.keys(SLIDERS) as NumericKey[];
@@ -80,6 +83,7 @@ function paramsFromUrl(): Partial<State> {
   if (colors?.length) partial.colors = colors;
   if (query.has("background")) partial.background = query.get("background") || null;
   if (query.has("animated")) partial.animated = query.get("animated") !== "false";
+  if (query.has("breathing")) partial.breathing = query.get("breathing") !== "false";
   return partial;
 }
 
@@ -97,6 +101,7 @@ function syncUrl(): void {
   if (state.background !== stateDefaults.background)
     query.set("background", state.background ?? "");
   if (state.animated !== stateDefaults.animated) query.set("animated", String(state.animated));
+  if (state.breathing !== stateDefaults.breathing) query.set("breathing", String(state.breathing));
   const search = query.toString();
   history.replaceState(null, "", search ? `?${search}` : location.pathname);
 }
@@ -194,6 +199,15 @@ animatedToggle.addEventListener("input", () => {
 });
 controls.append(el("label", { class: "control" }, el("span", {}, "animated"), animatedToggle));
 
+// Breathing: an infinite loop between closed & static and open & spinning.
+const breathingToggle = el("input", { type: "checkbox" });
+breathingToggle.checked = state.breathing;
+breathingToggle.addEventListener("input", () => {
+  state.breathing = breathingToggle.checked;
+  render();
+});
+controls.append(el("label", { class: "control" }, el("span", {}, "breathing"), breathingToggle));
+
 // Color palette: one picker per entry; one entry means the flat mark.
 const colorList = el("div", { class: "color-list" });
 const addColorButton = el("button", { type: "button", class: "small" }, "+ Add color");
@@ -289,6 +303,7 @@ $("#reset").addEventListener("click", () => {
   for (const key of NUMERIC_KEYS) setSliderValue(key, state[key]);
   gradientSelect.value = state.gradient;
   animatedToggle.checked = state.animated;
+  breathingToggle.checked = state.breathing;
   syncBackgroundControls();
   rebuildColorList();
   render();
@@ -360,6 +375,7 @@ function faviconTick(): void {
     ...state,
     colors: rotatePalette(state.colors, phase),
     animated: false,
+    breathing: false,
     onWarn: () => {},
   });
   favicon.href = `data:image/svg+xml,${encodeURIComponent(frame)}`;
@@ -406,10 +422,14 @@ function render(): void {
   warningsBox.hidden = warnings.length === 0;
   warningsBox.replaceChildren(...warnings.map((w) => el("p", {}, w)));
 
+  const isBreathingKey = (key: NumericKey): boolean =>
+    key === "breathingGap" || key === "breathingHold" || key === "breathingMorph";
   for (const key of NUMERIC_KEYS) {
     const { onlyFor } = SLIDERS[key];
     const inactive =
-      (onlyFor && state.gradient !== onlyFor) || (key === "animationDuration" && !state.animated);
+      (onlyFor && state.gradient !== onlyFor) ||
+      (key === "animationDuration" && !state.animated) ||
+      (isBreathingKey(key) && !state.breathing);
     sliderRows.get(key)!.classList.toggle("inactive", inactive);
   }
 
