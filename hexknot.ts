@@ -36,6 +36,18 @@
  * One color gives the flat mark. "steps" and the flows blend colors
  * themselves, so they need hex colors (#rgb / #rrggbb).
  *
+ * Animation
+ * ---------
+ * `animated` turns on a continuous color drift: the same palette position
+ * that already varies per-band (see "flow"/"steps" above) is swept through a
+ * full cycle over `animationDuration` seconds, via native SVG <animate>
+ * elements (no JS at runtime). Because the palette is sampled as a closed
+ * loop, sweeping any starting position through one full cycle always ends
+ * back where it started, so the loop repeats seamlessly forever — colors
+ * appear to flow around the ring like fluid. Only applies to "flow"/"flow
+ * (old)"/"steps" (the gradients that blend colors) with a hex palette of 2+
+ * colors; ignored (with a warning) for "linear" or a single color.
+ *
  * Corners
  * -------
  * `cornerRadius` rounds every band corner — the SVG-path equivalent of CSS
@@ -82,6 +94,14 @@ export interface HexKnotParams {
   gradient?: Gradient;
   /** Direction of the "linear" gradient in degrees: 0 = left→right, 90 = top→bottom. */
   gradientAngle?: number;
+  /**
+   * Animate the palette so its colors continuously drift around the ring —
+   * an organic, fluid-looking motion. Only takes effect with "flow"/"flow
+   * (old)"/"steps" and a hex palette of 2+ colors.
+   */
+  animated?: boolean;
+  /** Duration of one full color-drift cycle, in seconds. */
+  animationDuration?: number;
   /** Background color; keep null for transparent. */
   background?: string | null;
   /** Prefix for element ids, so several generated SVGs can be inlined on one page. */
@@ -264,6 +284,11 @@ function validate(p: Resolved): void {
     );
   if (!GRADIENTS.includes(p.gradient))
     warn(`unknown gradient "${p.gradient}" — using "steps" (options: ${GRADIENTS.join(", ")})`);
+  if (p.animated && p.animationDuration <= 0)
+    warn("animationDuration must be > 0 — animation ignored");
+  if (p.animated && p.colors.length <= 1) warn("animated has no effect with a single color");
+  if (p.animated && p.gradient === "linear")
+    warn('animated only applies to "flow"/"steps" — ignoring for "linear"');
 }
 
 // -------------------------------------------------------------------- color
@@ -318,20 +343,55 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
   const palette = p.colors;
   const fmt = numberFormatter(p.precision);
 
-  const pathEl = (d: string, fill: string): string => `  <path fill="${fill}" d="${d}"/>`;
+  const pathEl = (d: string, fill: string, animate?: string): string =>
+    animate
+      ? `  <path fill="${fill}" d="${d}">${animate}</path>`
+      : `  <path fill="${fill}" d="${d}"/>`;
 
   const gradientEl = (
     id: string,
     [x1, y1]: Vec,
     [x2, y2]: Vec,
     stops: Array<[number, string]>,
+    // One <animate> snippet per stop (same index); a missing/falsy entry leaves that stop static.
+    animates?: Array<string | undefined>,
   ): string =>
     [
       `    <linearGradient id="${id}" gradientUnits="userSpaceOnUse" ` +
         `x1="${fmt(x1)}" y1="${fmt(y1)}" x2="${fmt(x2)}" y2="${fmt(y2)}">`,
-      ...stops.map(([o, c]) => `      <stop offset="${+o.toFixed(3)}" stop-color="${c}"/>`),
+      ...stops.map(([o, c], i) => {
+        const animate = animates?.[i];
+        return animate
+          ? `      <stop offset="${+o.toFixed(3)}" stop-color="${c}">${animate}</stop>`
+          : `      <stop offset="${+o.toFixed(3)}" stop-color="${c}"/>`;
+      }),
       `    </linearGradient>`,
     ].join("\n");
+
+  /**
+   * Sweep `attr` (a color attribute: "stop-color" or "fill") through one full
+   * palette cycle starting at loop position `t0`, as a native SMIL <animate>.
+   * The keyframes sit exactly at the palette's own blend breakpoints (every
+   * 1/palette.length of the loop, `paletteAt`'s own linear-interpolation
+   * knots) so the browser's linear interpolation between keyframes retraces
+   * `paletteAt` exactly — no visible faceting, and no need to oversample.
+   */
+  function colorAnimate(rgb: readonly Rgb[], t0: number, duration: number, attr: string): string {
+    const n = rgb.length;
+    const knots = new Set<number>([0]);
+    for (let i = 0; i < n; i++) {
+      const x = (((i / n - t0) % 1) + 1) % 1; // phase (0..1) at which t0+phase crosses knot i
+      if (x > 1e-9) knots.add(x);
+    }
+    const xs = [...knots].sort((a, b) => a - b);
+    xs.push(1); // closes the loop: same color as x=0, so the cycle repeats seamlessly
+    const keyTimes = xs.map((x) => +x.toFixed(4)).join(";");
+    const values = xs.map((x) => paletteAt(rgb, t0 + x)).join(";");
+    return (
+      `<animate attributeName="${attr}" dur="${duration}s" repeatCount="indefinite" ` +
+      `calcMode="linear" keyTimes="${keyTimes}" values="${values}"/>`
+    );
+  }
 
   // Geometry: the base band and its six rotated copies, rotated in code so the
   // whole file lives in one coordinate space (no transform/paint-server surprises).
@@ -353,9 +413,11 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
       })
       .join(" ") + " Z";
 
-  /** One path per band, each with its own solid fill. */
-  const solidBands = (colorOf: (k: number) => string): string[] =>
-    bands.map((band, k) => pathEl(dOf(band), colorOf(k)));
+  /** One path per band, each with its own solid fill (optionally animated). */
+  const solidBands = (
+    colorOf: (k: number) => string,
+    animateOf?: (k: number) => string,
+  ): string[] => bands.map((band, k) => pathEl(dOf(band), colorOf(k), animateOf?.(k)));
 
   const defs: string[] = [];
   let body: string[];
@@ -400,13 +462,25 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
       const forward = p.gradient === "flow (old)";
       body = bands.map((band, k) => {
         const id = `${p.idPrefix}-g${k}`;
-        const ends = [paletteAt(rgb, k / BAND_COUNT), paletteAt(rgb, (k + 1) / BAND_COUNT)];
-        const [start, tip] = forward ? ends : ends.reverse();
+        const positions = [k / BAND_COUNT, (k + 1) / BAND_COUNT];
+        const [t0start, t0tip] = forward ? positions : [...positions].reverse();
+        const animates = p.animated
+          ? [
+              colorAnimate(rgb, t0start, p.animationDuration, "stop-color"),
+              colorAnimate(rgb, t0tip, p.animationDuration, "stop-color"),
+            ]
+          : undefined;
         defs.push(
-          gradientEl(id, rot(from, bandAngles[k]), rot(to, bandAngles[k]), [
-            [0, start],
-            [1, tip],
-          ]),
+          gradientEl(
+            id,
+            rot(from, bandAngles[k]),
+            rot(to, bandAngles[k]),
+            [
+              [0, paletteAt(rgb, t0start)],
+              [1, paletteAt(rgb, t0tip)],
+            ],
+            animates,
+          ),
         );
         return pathEl(dOf(band), `url(#${id})`);
       });
@@ -415,7 +489,12 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
       // solid color, sampled from the
       // closed palette loop at the band's position around the ring. Main colors
       // land evenly spaced; each band between two mains gets their solid blend.
-      body = solidBands((k) => paletteAt(rgb, k / BAND_COUNT));
+      body = solidBands(
+        (k) => paletteAt(rgb, k / BAND_COUNT),
+        p.animated
+          ? (k) => colorAnimate(rgb, k / BAND_COUNT, p.animationDuration, "fill")
+          : undefined,
+      );
     }
   }
 

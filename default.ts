@@ -30,5 +30,7 @@ export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
   colors: DEFAULT_PALETTE.colors,
   gradient: "flow",
   gradientAngle: 45,
+  animated: false,
+  animationDuration: 6,
   idPrefix: "hk",
 };
