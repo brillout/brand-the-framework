@@ -49,15 +49,16 @@
  * colors; ignored (with a warning) for "linear" or a single color.
  *
  * `breathing` is a second, independent animation: an infinite loop between a
- * closed & static state (`gap`) and an open & spinning state (`gap` widened
- * to `breathingGap`, the whole mark turning one full revolution) —
- * sequenced so `gap` and rotation never move at the same time: `gap` morphs
- * open first, THEN the mark spins one full turn while `gap` holds still,
- * THEN `gap` morphs back closed. Every geometry-bearing attribute (each
- * band's outline, and a flow gradient's axis) tweens between its closed- and
- * open-gap value via native SVG <animate>, so the interpolation is exact —
- * not just the color flow's paint. Works with any gradient mode or palette
- * (unlike `animated`, it doesn't need hex colors).
+ * closed & static state (`gap`, held for `breathingHold` seconds) and an
+ * open & spinning state (`gap` widened to `breathingGap`, the whole mark
+ * turning one full revolution over `breathingSpin` seconds) — sequenced so
+ * `gap` and rotation never move at the same time: `gap` morphs open over
+ * `breathingMorph` seconds, THEN the mark spins, THEN `gap` morphs closed
+ * over `breathingMorph` seconds again. Every geometry-bearing attribute
+ * (each band's outline, and a flow gradient's axis) tweens between its
+ * closed- and open-gap value via native SVG <animate>, so the interpolation
+ * is exact — not just the color flow's paint. Works with any gradient mode
+ * or palette (unlike `animated`, it doesn't need hex colors).
  *
  * Corners
  * -------
@@ -117,17 +118,19 @@ export interface HexKnotParams {
    * Animate an infinite loop between two states: closed & static (`gap`) and
    * open & spinning (`gap` widened to `breathingGap`, the whole mark turning
    * one full revolution) — `gap` and rotation never move at once, so `gap`
-   * morphs open, THEN the mark spins a full turn, THEN `gap` morphs closed.
-   * `breathingHold` sets how long each state is held; `breathingMorph` sets
-   * how long the `gap` transition between them takes, each way.
+   * morphs open, THEN the mark spins a full turn (`breathingSpin` seconds),
+   * THEN `gap` morphs closed (`breathingMorph` seconds, each way), THEN the
+   * closed state rests for `breathingHold` seconds before repeating.
    */
   breathing?: boolean;
   /** `gap` value in the "open" state; must stay below `bandGap` or the open bands collide. */
   breathingGap?: number;
-  /** Seconds held in each state (closed and open) per cycle. */
+  /** Seconds held in the closed state per cycle (the open state has no hold — it's spent spinning). */
   breathingHold?: number;
-  /** Seconds to morph between states, each way. */
+  /** Seconds to morph `gap` between states, each way. */
   breathingMorph?: number;
+  /** Seconds for the one full rotation in the open state. */
+  breathingSpin?: number;
   /** Background color; keep null for transparent. */
   background?: string | null;
   /** Prefix for element ids, so several generated SVGs can be inlined on one page. */
@@ -315,8 +318,8 @@ function validate(p: Resolved): void {
   if (p.animated && p.colors.length <= 1) warn("animated has no effect with a single color");
   if (p.animated && p.gradient === "linear")
     warn('animated only applies to "flow"/"steps" — ignoring for "linear"');
-  if (p.breathing && (p.breathingHold <= 0 || p.breathingMorph <= 0))
-    warn("breathingHold and breathingMorph must be > 0 — breathing ignored");
+  if (p.breathing && (p.breathingHold <= 0 || p.breathingMorph <= 0 || p.breathingSpin <= 0))
+    warn("breathingHold, breathingMorph and breathingSpin must be > 0 — breathing ignored");
   if (p.breathing && p.breathingGap <= p.gap)
     warn("breathingGap should exceed gap, or the open state doesn't open anything");
   if (p.breathing && p.bandGap <= p.breathingGap)
@@ -430,14 +433,21 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
 
   /**
    * The shared timeline for `breathing`'s infinite closed↔open loop: held
-   * closed for `breathingHold`, morph open over `breathingMorph`, held open
-   * for `breathingHold`, morph closed over `breathingMorph` — then repeat.
+   * closed for `breathingHold`, morph open over `breathingMorph`, spin for
+   * `breathingSpin` (the entire open state — gap stays put throughout), morph
+   * closed over `breathingMorph` — then repeat.
    */
   function breathingTiming(): { total: number; t1: number; t2: number; t3: number } {
     const hold = p.breathingHold;
     const morph = p.breathingMorph;
-    const total = 2 * hold + 2 * morph;
-    return { total, t1: hold / total, t2: (hold + morph) / total, t3: (2 * hold + morph) / total };
+    const spin = p.breathingSpin;
+    const total = hold + 2 * morph + spin;
+    return {
+      total,
+      t1: hold / total,
+      t2: (hold + morph) / total,
+      t3: (hold + morph + spin) / total,
+    };
   }
 
   /** Tween a geometry attribute between its closed- and open-gap value, held at each end. */
@@ -452,7 +462,7 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
   }
 
   /**
-   * The whole mark spins one full revolution only during the open hold —
+   * The whole mark spins one full revolution only during the open state —
    * gap is done morphing by then and stays fixed until the rotation
    * completes, so the two motions never run at once: gap first, then spin,
    * then gap again. 360° is a full turn, so it lands back exactly on the

@@ -35,6 +35,7 @@ export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
   breathing: false,
   breathingGap: 20,
   breathingHold: 2,
-  breathingMorph: 2,
+  breathingMorph: 1,
+  breathingSpin: 3,
   idPrefix: "hk",
 };

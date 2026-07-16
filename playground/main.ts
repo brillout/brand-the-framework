@@ -45,6 +45,7 @@ const SLIDERS: Record<NumericKey, SliderSpec> = {
   breathingGap: { min: 0, max: 128 },
   breathingHold: { min: 1, max: 10 },
   breathingMorph: { min: 1, max: 10 },
+  breathingSpin: { min: 1, max: 15 },
   precision: { min: 0, max: 6 },
 };
 const NUMERIC_KEYS = Object.keys(SLIDERS) as NumericKey[];
@@ -423,7 +424,10 @@ function render(): void {
   warningsBox.replaceChildren(...warnings.map((w) => el("p", {}, w)));
 
   const isBreathingKey = (key: NumericKey): boolean =>
-    key === "breathingGap" || key === "breathingHold" || key === "breathingMorph";
+    key === "breathingGap" ||
+    key === "breathingHold" ||
+    key === "breathingMorph" ||
+    key === "breathingSpin";
   for (const key of NUMERIC_KEYS) {
     const { onlyFor } = SLIDERS[key];
     const inactive =
