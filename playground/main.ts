@@ -308,6 +308,79 @@ $("#download").addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
+// -------------------------------------------------------- animated favicon
+//
+// A data-URI SVG favicon doesn't reliably replay its embedded SMIL <animate>
+// elements as a browser tab icon, so when animated we redraw the favicon
+// ourselves: resample the palette at the current point in the color cycle
+// (same period as the preview's `animationDuration`) and render one static
+// frame, on an interval fast enough to read as motion at favicon size.
+
+const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+function hexTo6(hex: string): string {
+  const digits = HEX_COLOR.exec(hex.trim())![1];
+  return digits.length === 3 ? [...digits].map((c) => c + c).join("") : digits;
+}
+
+function hexBlend(a: string, b: string, t: number): string {
+  const pa = hexTo6(a)
+    .match(/../g)!
+    .map((h) => parseInt(h, 16));
+  const pb = hexTo6(b)
+    .match(/../g)!
+    .map((h) => parseInt(h, 16));
+  return (
+    "#" +
+    pa
+      .map((v, i) =>
+        Math.round(v + (pb[i] - v) * t)
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")
+  );
+}
+
+/** Resample `colors` (a closed loop) so index 0 sits `phase` (0..1) of the way around. */
+function rotatePalette(colors: string[], phase: number): string[] {
+  const n = colors.length;
+  const shift = (((phase % 1) + 1) % 1) * n;
+  const lo = Math.floor(shift);
+  const t = shift - lo;
+  return colors.map((_, i) => hexBlend(colors[(i + lo) % n], colors[(i + lo + 1) % n], t));
+}
+
+let faviconTimer: ReturnType<typeof setInterval> | null = null;
+let faviconStart = 0;
+
+function faviconTick(): void {
+  const phase = (Date.now() - faviconStart) / (state.animationDuration * 1000);
+  const frame = hexKnotSvg({
+    ...state,
+    colors: rotatePalette(state.colors, phase),
+    animated: false,
+    onWarn: () => {},
+  });
+  favicon.href = `data:image/svg+xml,${encodeURIComponent(frame)}`;
+}
+
+/** Only "flow"/"steps" with a hex palette of 2+ colors can be resampled — same eligibility as `animated` itself. */
+function syncFaviconAnimation(): void {
+  const eligible =
+    state.animated &&
+    state.gradient !== "linear" &&
+    state.colors.length > 1 &&
+    state.colors.every((c) => HEX_COLOR.test(c.trim()));
+  if (eligible && !faviconTimer) {
+    faviconStart = Date.now();
+    faviconTimer = setInterval(faviconTick, 100);
+  } else if (!eligible && faviconTimer) {
+    clearInterval(faviconTimer);
+    faviconTimer = null;
+  }
+}
+
 // ------------------------------------------------------------------ render
 
 const preview = $("#preview");
@@ -340,6 +413,7 @@ function render(): void {
     sliderRows.get(key)!.classList.toggle("inactive", inactive);
   }
 
+  syncFaviconAnimation();
   syncUrl();
 }
 
