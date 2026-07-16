@@ -32,5 +32,10 @@ export const DEFAULTS: Required<Omit<HexKnotParams, "onWarn">> = {
   gradientAngle: 45,
   animated: false,
   animationDuration: 6,
+  breathing: false,
+  breathingGap: 20,
+  breathingHold: 2,
+  breathingMorph: 1,
+  breathingSpin: 3,
   idPrefix: "hk",
 };

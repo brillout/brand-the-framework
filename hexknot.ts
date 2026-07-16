@@ -48,6 +48,18 @@
  * (old)"/"steps" (the gradients that blend colors) with a hex palette of 2+
  * colors; ignored (with a warning) for "linear" or a single color.
  *
+ * `breathing` is a second, independent animation: an infinite loop between a
+ * closed & static state (`gap`, held for `breathingHold` seconds) and an
+ * open & spinning state (`gap` widened to `breathingGap`, the whole mark
+ * turning one full revolution over `breathingSpin` seconds) — sequenced so
+ * `gap` and rotation never move at the same time: `gap` morphs open over
+ * `breathingMorph` seconds, THEN the mark spins, THEN `gap` morphs closed
+ * over `breathingMorph` seconds again. Every geometry-bearing attribute
+ * (each band's outline, and a flow gradient's axis) tweens between its
+ * closed- and open-gap value via native SVG <animate>, so the interpolation
+ * is exact — not just the color flow's paint. Works with any gradient mode
+ * or palette (unlike `animated`, it doesn't need hex colors).
+ *
  * Corners
  * -------
  * `cornerRadius` rounds every band corner — the SVG-path equivalent of CSS
@@ -102,6 +114,23 @@ export interface HexKnotParams {
   animated?: boolean;
   /** Duration of one full color-drift cycle, in seconds. */
   animationDuration?: number;
+  /**
+   * Animate an infinite loop between two states: closed & static (`gap`) and
+   * open & spinning (`gap` widened to `breathingGap`, the whole mark turning
+   * one full revolution) — `gap` and rotation never move at once, so `gap`
+   * morphs open, THEN the mark spins a full turn (`breathingSpin` seconds),
+   * THEN `gap` morphs closed (`breathingMorph` seconds, each way), THEN the
+   * closed state rests for `breathingHold` seconds before repeating.
+   */
+  breathing?: boolean;
+  /** `gap` value in the "open" state; must stay below `bandGap` or the open bands collide. */
+  breathingGap?: number;
+  /** Seconds held in the closed state per cycle (the open state has no hold — it's spent spinning). */
+  breathingHold?: number;
+  /** Seconds to morph `gap` between states, each way. */
+  breathingMorph?: number;
+  /** Seconds for the one full rotation in the open state. */
+  breathingSpin?: number;
   /** Background color; keep null for transparent. */
   background?: string | null;
   /** Prefix for element ids, so several generated SVGs can be inlined on one page. */
@@ -289,6 +318,12 @@ function validate(p: Resolved): void {
   if (p.animated && p.colors.length <= 1) warn("animated has no effect with a single color");
   if (p.animated && p.gradient === "linear")
     warn('animated only applies to "flow"/"steps" — ignoring for "linear"');
+  if (p.breathing && (p.breathingHold <= 0 || p.breathingMorph <= 0 || p.breathingSpin <= 0))
+    warn("breathingHold, breathingMorph and breathingSpin must be > 0 — breathing ignored");
+  if (p.breathing && p.breathingGap <= p.gap)
+    warn("breathingGap should exceed gap, or the open state doesn't open anything");
+  if (p.breathing && p.bandGap <= p.breathingGap)
+    warn("breathingGap must stay below bandGap, or the open state's bands collide");
 }
 
 // -------------------------------------------------------------------- color
@@ -355,10 +390,13 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
     stops: Array<[number, string]>,
     // One <animate> snippet per stop (same index); a missing/falsy entry leaves that stop static.
     animates?: Array<string | undefined>,
+    // Extra <animate> snippets animating the gradient axis itself (x1/y1/x2/y2), e.g. for `breathing`.
+    axisAnimates?: string[],
   ): string =>
     [
       `    <linearGradient id="${id}" gradientUnits="userSpaceOnUse" ` +
         `x1="${fmt(x1)}" y1="${fmt(y1)}" x2="${fmt(x2)}" y2="${fmt(y2)}">`,
+      ...(axisAnimates ?? []),
       ...stops.map(([o, c], i) => {
         const animate = animates?.[i];
         return animate
@@ -393,6 +431,53 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
     );
   }
 
+  /**
+   * The shared timeline for `breathing`'s infinite closed↔open loop: held
+   * closed for `breathingHold`, morph open over `breathingMorph`, spin for
+   * `breathingSpin` (the entire open state — gap stays put throughout), morph
+   * closed over `breathingMorph` — then repeat.
+   */
+  function breathingTiming(): { total: number; t1: number; t2: number; t3: number } {
+    const hold = p.breathingHold;
+    const morph = p.breathingMorph;
+    const spin = p.breathingSpin;
+    const total = hold + 2 * morph + spin;
+    return {
+      total,
+      t1: hold / total,
+      t2: (hold + morph) / total,
+      t3: (hold + morph + spin) / total,
+    };
+  }
+
+  /** Tween a geometry attribute between its closed- and open-gap value, held at each end. */
+  function breathingAnimate(attr: string, closed: string, open: string): string {
+    if (!p.breathing) return "";
+    const { total, t1, t2, t3 } = breathingTiming();
+    const keyTimes = [0, t1, t2, t3, 1].map((v) => +v.toFixed(4)).join(";");
+    return (
+      `<animate attributeName="${attr}" dur="${total}s" repeatCount="indefinite" ` +
+      `calcMode="linear" keyTimes="${keyTimes}" values="${closed};${closed};${open};${open};${closed}"/>`
+    );
+  }
+
+  /**
+   * The whole mark spins one full revolution only during the open state —
+   * gap is done morphing by then and stays fixed until the rotation
+   * completes, so the two motions never run at once: gap first, then spin,
+   * then gap again. 360° is a full turn, so it lands back exactly on the
+   * closed orientation with no visible seam.
+   */
+  function breathingRotateAnimate(): string {
+    if (!p.breathing) return "";
+    const { total, t1, t2, t3 } = breathingTiming();
+    const keyTimes = [0, t1, t2, t3, 1].map((v) => +v.toFixed(4)).join(";");
+    return (
+      `    <animateTransform attributeName="transform" type="rotate" dur="${total}s" ` +
+      `repeatCount="indefinite" calcMode="linear" keyTimes="${keyTimes}" values="0;0;0;360;360"/>`
+    );
+  }
+
   // Geometry: the base band and its six rotated copies, rotated in code so the
   // whole file lives in one coordinate space (no transform/paint-server surprises).
   // `rotation` turns the whole mark by folding into each band's angle.
@@ -402,6 +487,9 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
   const bandAngles = ANGLES.map((angle) => angle + p.rotation);
   const base = corners(bandEdges(p));
   const bands = bandAngles.map((angle) => base.map((pt) => rot(pt, angle)));
+  // `breathing`'s "open" geometry: the same band, but at `breathingGap` instead of `gap`.
+  const baseOpen = p.breathing ? corners(bandEdges({ ...p, gap: p.breathingGap })) : null;
+  const bandsOpen = baseOpen && bandAngles.map((angle) => baseOpen.map((pt) => rot(pt, angle)));
   const dOf = (poly: Vec[]): string =>
     poly
       .map((_, i) => {
@@ -417,14 +505,20 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
   const solidBands = (
     colorOf: (k: number) => string,
     animateOf?: (k: number) => string,
-  ): string[] => bands.map((band, k) => pathEl(dOf(band), colorOf(k), animateOf?.(k)));
+  ): string[] =>
+    bands.map((band, k) => {
+      const shapeAnimate = bandsOpen ? breathingAnimate("d", dOf(band), dOf(bandsOpen[k])) : "";
+      return pathEl(dOf(band), colorOf(k), (animateOf?.(k) ?? "") + shapeAnimate);
+    });
 
   const defs: string[] = [];
   let body: string[];
 
   if (palette.length <= 1) {
     // Flat mark: all six bands as subpaths of a single path.
-    body = [pathEl(bands.map(dOf).join(" "), palette[0])];
+    const closedD = bands.map(dOf).join(" ");
+    const animate = bandsOpen && breathingAnimate("d", closedD, bandsOpen.map(dOf).join(" "));
+    body = [pathEl(closedD, palette[0], animate || undefined)];
   } else if (p.gradient === "linear") {
     // One straight gradient across the whole mark.
     const id = `${p.idPrefix}-g`;
@@ -438,7 +532,9 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
         palette.map((c, i) => [i / (palette.length - 1), c]),
       ),
     );
-    body = [pathEl(bands.map(dOf).join(" "), `url(#${id})`)];
+    const closedD = bands.map(dOf).join(" ");
+    const animate = bandsOpen && breathingAnimate("d", closedD, bandsOpen.map(dOf).join(" "));
+    body = [pathEl(closedD, `url(#${id})`, animate || undefined)];
   } else {
     // "flow" and "steps" blend colors themselves, which needs a hex palette.
     const parsed = palette.map(parseHex);
@@ -459,6 +555,10 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
       // original forward blend, whose seams clashed ~1.5 steps apart.
       const from = mid(base[7], base[0]); // middle of the start cut
       const to = mid(base[3], base[4]); //   middle of the tip cut
+      // Same two points, at `breathingGap` instead of `gap` — the gradient
+      // axis's own "open" position, for `breathing`.
+      const fromOpen = baseOpen && mid(baseOpen[7], baseOpen[0]);
+      const toOpen = baseOpen && mid(baseOpen[3], baseOpen[4]);
       const forward = p.gradient === "flow (old)";
       body = bands.map((band, k) => {
         const id = `${p.idPrefix}-g${k}`;
@@ -470,19 +570,38 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
               colorAnimate(rgb, t0tip, p.animationDuration, "stop-color"),
             ]
           : undefined;
+        const axisPoint = rot(from, bandAngles[k]);
+        const tipPoint = rot(to, bandAngles[k]);
+        const axisAnimates =
+          fromOpen && toOpen
+            ? (() => {
+                const axisPointOpen = rot(fromOpen, bandAngles[k]);
+                const tipPointOpen = rot(toOpen, bandAngles[k]);
+                return [
+                  breathingAnimate("x1", fmt(axisPoint[0]), fmt(axisPointOpen[0])),
+                  breathingAnimate("y1", fmt(axisPoint[1]), fmt(axisPointOpen[1])),
+                  breathingAnimate("x2", fmt(tipPoint[0]), fmt(tipPointOpen[0])),
+                  breathingAnimate("y2", fmt(tipPoint[1]), fmt(tipPointOpen[1])),
+                ];
+              })()
+            : undefined;
         defs.push(
           gradientEl(
             id,
-            rot(from, bandAngles[k]),
-            rot(to, bandAngles[k]),
+            axisPoint,
+            tipPoint,
             [
               [0, paletteAt(rgb, t0start)],
               [1, paletteAt(rgb, t0tip)],
             ],
             animates,
+            axisAnimates,
           ),
         );
-        return pathEl(dOf(band), `url(#${id})`);
+        const shapeAnimate = bandsOpen
+          ? breathingAnimate("d", dOf(band), dOf(bandsOpen[k]))
+          : undefined;
+        return pathEl(dOf(band), `url(#${id})`, shapeAnimate);
       });
     } else {
       // "steps" (also the fallback for unknown gradients): every band is ONE
@@ -500,10 +619,16 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
 
   // Everything is drawn around (0,0), so the viewBox is symmetric about the
   // origin. The bounds hug the hexagon's convex hull: its corners sit at the
-  // circumradius, at 90° + rotation and every 60° onward.
+  // circumradius, at 90° + rotation and every 60° onward. `breathing` spins
+  // the mark through every angle, so its worst-case bound is the full
+  // circumradius in both directions (a corner pointing straight along the axis).
   const hexCorners = ANGLES.map((angle) => unit(angle + 90 + p.rotation));
-  const halfW = circumradius * Math.max(...hexCorners.map(([x]) => Math.abs(x))) + p.padding;
-  const halfH = circumradius * Math.max(...hexCorners.map(([, y]) => Math.abs(y))) + p.padding;
+  const halfW = p.breathing
+    ? circumradius + p.padding
+    : circumradius * Math.max(...hexCorners.map(([x]) => Math.abs(x))) + p.padding;
+  const halfH = p.breathing
+    ? circumradius + p.padding
+    : circumradius * Math.max(...hexCorners.map(([, y]) => Math.abs(y))) + p.padding;
   const [x, y, w, h] = [-halfW, -halfH, 2 * halfW, 2 * halfH].map(fmt);
 
   return [
@@ -512,7 +637,7 @@ export function hexKnotSvg(params: HexKnotParams = {}): string {
       ? [`  <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${p.background}"/>`]
       : []),
     ...(defs.length ? ["  <defs>", ...defs, "  </defs>"] : []),
-    ...body,
+    ...(p.breathing ? ["  <g>", breathingRotateAnimate(), ...body, "  </g>"] : body),
     `</svg>`,
     ``,
   ].join("\n");
