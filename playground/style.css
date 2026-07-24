@@ -36,8 +36,15 @@ main {
   overflow-y: auto;
 }
 
+#sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 h1 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 18px;
   font-weight: 650;
 }
@@ -167,7 +174,7 @@ button.palette {
   height: 14px;
 }
 
-/* ----------------------------------------------------- warnings & actions */
+/* -------------------------------------------------------------- warnings */
 
 #warnings {
   padding: 10px 12px;
@@ -184,12 +191,6 @@ button.palette {
 
 #warnings p + p {
   margin-top: 6px;
-}
-
-#actions {
-  display: flex;
-  gap: 8px;
-  margin-top: auto;
 }
 
 button {
@@ -227,6 +228,12 @@ button:disabled {
   padding: 32px;
   min-width: 0;
   overflow-y: auto;
+}
+
+#stage-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 #preview {

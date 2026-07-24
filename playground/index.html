@@ -11,16 +11,18 @@
   <body>
     <main>
       <aside id="sidebar">
-        <h1>hexknot playground</h1>
+        <header id="sidebar-header">
+          <h1>hexknot playground</h1>
+          <button id="reset" type="button">Reset</button>
+        </header>
         <div id="controls"></div>
         <div id="warnings" hidden></div>
-        <div id="actions">
-          <button id="reset" type="button">Reset</button>
+      </aside>
+      <section id="stage">
+        <div id="stage-actions">
           <button id="copy" type="button">Copy SVG</button>
           <button id="download" type="button">Download SVG</button>
         </div>
-      </aside>
-      <section id="stage">
         <div id="preview"></div>
         <details id="source-details">
           <summary>SVG source <span id="byte-count"></span></summary>
